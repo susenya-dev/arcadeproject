@@ -144,7 +144,6 @@ class MyGame(arcade.Window):
         self.camera.position = (self.width // 2, self.height // 2)
 
     def game_over(self):
-        print("GAME OVER")
         self.camera_shake.start()
         self.setup()
 
