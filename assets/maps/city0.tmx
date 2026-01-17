@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="120" height="160" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="1">
  <tileset firstgid="1" name="City Prop Tileset update 2" tilewidth="16" tileheight="16" tilecount="768" columns="32">
-  <image source="../../Downloads/City Prop Tileset update 2.png" width="512" height="384"/>
+  <image source="assets/tiles/City Prop Tileset update 2.png" width="512" height="384"/>
  </tileset>
  <tileset firstgid="769" name="tileset-grassland-grass" tilewidth="16" tileheight="16" tilecount="100" columns="10">
-  <image source="../../Downloads/Grasslands - Free/tileset-grassland-grass.png" width="160" height="160"/>
+  <image source="assets/tiles/tileset-grassland-grass.png" width="160" height="160"/>
  </tileset>
  <tileset firstgid="869" name="tileset-grassland-water" tilewidth="16" tileheight="16" tilecount="286" columns="22">
-  <image source="../../Downloads/Grasslands - Free/tileset-grassland-water.png" width="364" height="223"/>
+  <image source="assets/tiles/tileset-grassland-water.png" width="364" height="223"/>
  </tileset>
  <tileset firstgid="1155" name="tileset_rails" tilewidth="16" tileheight="16" tilecount="100" columns="10">
   <image source="../../AppData/Local/Temp/7zE091B0FF6/tileset_rails.png" width="160" height="160"/>
  </tileset>
  <tileset firstgid="1255" name="CityBuilder" tilewidth="16" tileheight="16" tilecount="1024" columns="32">
-  <image source="../../Downloads/CityBuilder.png" width="512" height="512"/>
+  <image source="assets/tiles/CityBuilder.png" width="512" height="512"/>
  </tileset>
  <tileset firstgid="2279" name="tileset-grassland-paths" tilewidth="16" tileheight="16" tilecount="484" columns="22">
-  <image source="../../Downloads/Grasslands - Free/tileset-grassland-paths.png" width="364" height="364"/>
+  <image source="assets/tiles/tileset-grassland-paths.png" width="364" height="364"/>
  </tileset>
  <layer id="1" name="grass" width="120" height="160">
   <data encoding="base64" compression="zlib">
