@@ -6,7 +6,7 @@ from arcade.gui.widgets.layout import UIAnchorLayout, UIBoxLayout  # А это �
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
-
+# меню
 class MyGUIWindow(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "Супер GUI Пример!")
