@@ -77,6 +77,7 @@ class MyGUIWindow(arcade.Window):
         self.login_user(input_text1, input_text2)
         self.show_main_menu(None)
 
+    # пароль ник
     def login_user(self, input_text1, input_text2):
         f = open("assets/player.txt", "w", encoding="utf-8")
         if (input_text1.text != "" and input_text2.text != "" and (input_text1.text != "Введи имя"

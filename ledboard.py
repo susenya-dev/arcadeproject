@@ -22,7 +22,6 @@ def load_rating_data(layout, main_window):
     back_button.on_click = main_window.show_main_menu
     layout.add(back_button)
 
-    # Заголовок
     title = UILabel(
         text="Рейтинг",
         font_size=30,
