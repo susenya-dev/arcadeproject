@@ -95,11 +95,11 @@ class MyGUIWindow(arcade.Window):
         elif (input_text1.text == "Введи имя" or input_text1.text == "") and (
                 input_text2.text != "" or input_text2.text != "Введи пароль"):
             print(f"user_{''.join(main(3, 1))}", file=f)
-            print(input_text2, file=f)
+            print(input_text2.text, file=f)
 
         elif (input_text1.text != "Введи имя" or input_text1.text != "") and (
                 input_text2.text == "" or input_text2.text == "Введи пароль"):
-            print(input_text1, file=f)
+            print(input_text1.text, file=f)
             print("".join(main(10, 1)), file=f)
 
     def dann(self, event):
