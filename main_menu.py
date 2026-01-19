@@ -2,7 +2,6 @@ import arcade
 from arcade.gui import UIManager, UIFlatButton, UILabel, UIBoxLayout, UIAnchorLayout, UIMessageBox, UIInputText
 import string as st
 import random
-# from ledboard import Rating
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -42,11 +41,6 @@ class MyGUIWindow(arcade.Window):
         self.level_layout = UIBoxLayout(vertical=True, space_between=10)  # Вертикальный стек для выбора уровня
 
         # Изначально показываем главное меню
-        # self.current_layout = self.main_layout
-        #
-        # # Добавляем главное меню
-        # self.setup_main_menu()
-
         f = open("assets/player.txt").readlines()
         if len(f) == 0:
             self.current_layout = self.user_layout
@@ -83,6 +77,7 @@ class MyGUIWindow(arcade.Window):
         self.login_user(input_text1, input_text2)
         self.show_main_menu(None)
 
+    # пароль ник
     def login_user(self, input_text1, input_text2):
         f = open("assets/player.txt", "w", encoding="utf-8")
         if (input_text1.text != "" and input_text2.text != "" and (input_text1.text != "Введи имя"
@@ -96,6 +91,26 @@ class MyGUIWindow(arcade.Window):
                                                                     and input_text2.text == "Введи пароль")):
             print(f"user_{''.join(main(3, 1))}", file=f)
             print("".join(main(10, 1)), file=f)
+
+        elif (input_text1.text == "Введи имя" or input_text1.text == "") and (
+                input_text2.text != "" or input_text2.text != "Введи пароль"):
+            print(f"user_{''.join(main(3, 1))}", file=f)
+            print(input_text2, file=f)
+
+        elif (input_text1.text != "Введи имя" or input_text1.text != "") and (
+                input_text2.text == "" or input_text2.text == "Введи пароль"):
+            print(input_text1, file=f)
+            print("".join(main(10, 1)), file=f)
+
+    def dann(self, event):
+        f = open("assets/player.txt").readlines()
+        message_box = UIMessageBox(
+            width=300, height=200,
+            message_text=f"Данные аккаунта\nимя: {f[0]}пароль: {f[1]}",
+            buttons=("OK",)
+        )
+        message_box.on_action = self.on_message_button
+        self.manager.add(message_box)
 
     def setup_main_menu(self):
         self.main_layout.clear()
@@ -134,9 +149,16 @@ class MyGUIWindow(arcade.Window):
             height=50,
             color=arcade.color.BLUE
         )
-        settings_button.on_click = self.reit_window
+        settings_button.on_click = self.show_rating
         self.main_layout.add(settings_button)
-
+        settings_button3 = UIFlatButton(
+            text="Данные аккаунта",
+            width=200,
+            height=50,
+            color=arcade.color.BLUE
+        )
+        settings_button3.on_click = self.dann
+        self.main_layout.add(settings_button3)
         settings_button2 = UIFlatButton(
             text="Выйти из аккаунта",
             width=200,
@@ -146,11 +168,10 @@ class MyGUIWindow(arcade.Window):
         settings_button2.on_click = self.delet_user
         self.main_layout.add(settings_button2)
 
-    def reit_window(self, event):
-        self.close()
-        from ledboard import Rating
-        rating_window = Rating()
-        arcade.run()
+    def show_rating(self, event):
+
+        from ledboard import show_rating_in_window
+        show_rating_in_window(self)
 
     def delet_user(self, event=None):
         open("assets/player.txt", 'w').close()
