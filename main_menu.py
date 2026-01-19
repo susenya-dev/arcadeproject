@@ -1,13 +1,34 @@
 import arcade
 from arcade.gui import UIManager, UIFlatButton, UILabel, UIBoxLayout, UIAnchorLayout, UIMessageBox, UIInputText
+import string as st
+import random
+# from ledboard import Rating
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
+alp = st.ascii_letters + st.digits
+alp = alp.replace('0', '').replace('o', '').replace('O', '').replace('l',
+                                                                     '').replace('1',
+                                                                                 '').replace('I', '')
+
+
+def generate_password(m):
+    return ''.join(random.choices(alp, k=m))
+
+
+def main(n, m):
+    ans = []
+    while len(ans) < n:
+        a = generate_password(m)
+        if a not in ans:
+            ans.append(a)
+    return ans
+
 
 class MyGUIWindow(arcade.Window):
     def __init__(self):
-        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "Супер GUI Пример!")
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "Меню")
         arcade.set_background_color(arcade.color.SMOKE)
 
         # UIManager — сердце GUI
@@ -26,8 +47,13 @@ class MyGUIWindow(arcade.Window):
         # # Добавляем главное меню
         # self.setup_main_menu()
 
-        self.current_layout = self.user_layout
-        self.user_menu()
+        f = open("assets/player.txt").readlines()
+        if len(f) == 0:
+            self.current_layout = self.user_layout
+            self.user_menu()
+        else:
+            self.current_layout = self.main_layout
+            self.setup_main_menu()
 
         self.anchor_layout.add(self.current_layout)  # Добавляем текущий layout в anchor
         self.manager.add(self.anchor_layout)  # Всё в manager
@@ -35,13 +61,13 @@ class MyGUIWindow(arcade.Window):
     def user_menu(self):
         self.user_layout.clear()
 
-        input_text = UIInputText(x=0, y=0, width=200, height=30, text="Введи имя")
-        input_text.on_change = lambda text: print(f"Текст изменился: {text}")
-        self.user_layout.add(input_text)
+        input_text1 = UIInputText(x=0, y=0, width=200, height=30, text="Введи имя")
+        input_text1.on_change = lambda text: text
+        self.user_layout.add(input_text1)
 
-        input_text = UIInputText(x=0, y=0, width=200, height=30, text="Введи пароль")
-        input_text.on_change = lambda text: print(f"Текст изменился: {text}")
-        self.user_layout.add(input_text)
+        input_text2 = UIInputText(x=0, y=0, width=200, height=30, text="Введи пароль")
+        input_text2.on_change = lambda text: text
+        self.user_layout.add(input_text2)
 
         button = UIFlatButton(
             text="войти",
@@ -49,8 +75,27 @@ class MyGUIWindow(arcade.Window):
             height=50,
             color=arcade.color.BLUE
         )
-        button.on_click = lambda event: self.show_main_menu(event)
+
+        button.on_click = lambda event: self.menlog(input_text1, input_text2)
         self.user_layout.add(button)
+
+    def menlog(self, input_text1, input_text2):
+        self.login_user(input_text1, input_text2)
+        self.show_main_menu(None)
+
+    def login_user(self, input_text1, input_text2):
+        f = open("assets/player.txt", "w", encoding="utf-8")
+        if (input_text1.text != "" and input_text2.text != "" and (input_text1.text != "Введи имя"
+                                                                   and input_text2.text != "Введи пароль")):
+            username = input_text1.text
+            password = input_text2.text
+
+            print(username, file=f)
+            print(password, file=f)
+        elif (input_text1.text == "" and input_text2.text == "" or (input_text1.text == "Введи имя"
+                                                                    and input_text2.text == "Введи пароль")):
+            print(f"user_{''.join(main(3, 1))}", file=f)
+            print("".join(main(10, 1)), file=f)
 
     def setup_main_menu(self):
         self.main_layout.clear()
@@ -89,17 +134,31 @@ class MyGUIWindow(arcade.Window):
             height=50,
             color=arcade.color.BLUE
         )
-        settings_button.on_click = self.on_button_click
+        settings_button.on_click = self.reit_window
         self.main_layout.add(settings_button)
 
-        settings_button = UIFlatButton(
+        settings_button2 = UIFlatButton(
             text="Выйти из аккаунта",
             width=200,
             height=50,
             color=arcade.color.BLUE
         )
-        settings_button.on_click = self.on_button_click
-        self.main_layout.add(settings_button)
+        settings_button2.on_click = self.delet_user
+        self.main_layout.add(settings_button2)
+
+    def reit_window(self, event):
+        self.close()
+        from ledboard import Rating
+        rating_window = Rating()
+        arcade.run()
+
+    def delet_user(self, event=None):
+        open("assets/player.txt", 'w').close()
+        self.level_layout.clear()
+
+        self.user_menu()
+
+        self.sw_layout(self.user_layout)
 
     def setup_level_menu(self):
         self.level_layout.clear()
@@ -154,9 +213,7 @@ class MyGUIWindow(arcade.Window):
         self.sw_layout(self.level_layout)
 
     def show_main_menu(self, event):
-        # СНАЧАЛА создаем главное меню
         self.setup_main_menu()
-        # ПОТОМ переключаем layout
         self.sw_layout(self.main_layout)
 
     def sw_layout(self, new_layout):
