@@ -1,3 +1,4 @@
+import sqlite3
 import arcade
 from arcade.gui import UIManager, UIFlatButton, UILabel, UIBoxLayout, UIAnchorLayout, UIMessageBox, UIInputText
 import string as st
@@ -79,28 +80,46 @@ class MyGUIWindow(arcade.Window):
 
     # пароль ник
     def login_user(self, input_text1, input_text2):
+        us = ps = ""
         f = open("assets/player.txt", "w", encoding="utf-8")
         if (input_text1.text != "" and input_text2.text != "" and (input_text1.text != "Введи имя"
                                                                    and input_text2.text != "Введи пароль")):
             username = input_text1.text
             password = input_text2.text
+            us = username
+            ps = password
 
-            print(username, file=f)
-            print(password, file=f)
         elif (input_text1.text == "" and input_text2.text == "" or (input_text1.text == "Введи имя"
                                                                     and input_text2.text == "Введи пароль")):
-            print(f"user_{''.join(main(3, 1))}", file=f)
-            print("".join(main(10, 1)), file=f)
+            us = f"user_{''.join(main(3, 1))}"
+            ps = "".join(main(10, 1))
 
         elif (input_text1.text == "Введи имя" or input_text1.text == "") and (
                 input_text2.text != "" or input_text2.text != "Введи пароль"):
-            print(f"user_{''.join(main(3, 1))}", file=f)
-            print(input_text2.text, file=f)
+            us = f"user_{''.join(main(3, 1))}"
+            ps = input_text2.text
 
         elif (input_text1.text != "Введи имя" or input_text1.text != "") and (
                 input_text2.text == "" or input_text2.text == "Введи пароль"):
-            print(input_text1.text, file=f)
-            print("".join(main(10, 1)), file=f)
+            us = input_text1.text
+            ps = "".join(main(10, 1))
+
+        print(str(us), file=f)
+        print(str(ps), file=f)
+        f.close()
+
+        self.conn = sqlite3.connect("assets/game.db")
+        self.cursor = self.conn.cursor()
+
+        self.cursor.execute(f'''INSERT INTO leaders (
+                        user,
+                        password
+                    )
+                    VALUES (
+                    '{us}',
+                        '{ps}'
+                    );''')
+        self.conn.commit()
 
     def dann(self, event):
         f = open("assets/player.txt").readlines()
