@@ -108,6 +108,7 @@ class MyGUIWindow(arcade.Window):
         print(str(ps), file=f)
         f.close()
 
+        # дб
         self.conn = sqlite3.connect("assets/game.db")
         self.cursor = self.conn.cursor()
 
