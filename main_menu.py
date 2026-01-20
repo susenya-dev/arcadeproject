@@ -76,10 +76,13 @@ class MyGUIWindow(arcade.Window):
 
     def menlog(self, input_text1, input_text2):
         self.login_user(input_text1, input_text2)
-        self.show_main_menu(None)
+        # self.show_main_menu(None)
 
     # пароль ник
     def login_user(self, input_text1, input_text2):
+        self.conn = sqlite3.connect("assets/game.db")
+        self.cursor = self.conn.cursor()
+
         us = ps = ""
         f = open("assets/player.txt", "w", encoding="utf-8")
         if (input_text1.text != "" and input_text2.text != "" and (input_text1.text != "Введи имя"
@@ -104,22 +107,37 @@ class MyGUIWindow(arcade.Window):
             us = input_text1.text
             ps = "".join(main(10, 1))
 
-        print(str(us), file=f)
-        print(str(ps), file=f)
+        sp = self.cursor.execute(f'''SELECT user,
+                password
+                FROM leaders WHERE user like "{us}"''').fetchall()
+
+        if len(sp) == 0:
+            self.show_main_menu(None)
+            self.cursor.execute(f'''INSERT INTO leaders (
+                                    user,
+                                    password
+                                )
+                                VALUES (
+                                '{us}',
+                                    '{ps}'
+                                );''')
+            print(str(us), file=f)
+            print(str(ps), file=f)
+
+        elif len(sp) != 0 and sp[0][-1] != ps:
+            message_box = UIMessageBox(
+                width=300, height=200,
+                message_text=f"Неверный пароль",
+                buttons=("OK",)
+            )
+            message_box.on_action = self.on_message_button
+            self.manager.add(message_box)
+        elif len(sp) != 0 and sp[0][-1] == ps:
+            self.show_main_menu(None)
+            print(str(us), file=f)
+            print(str(ps), file=f)
         f.close()
 
-        # дб
-        self.conn = sqlite3.connect("assets/game.db")
-        self.cursor = self.conn.cursor()
-
-        self.cursor.execute(f'''INSERT INTO leaders (
-                        user,
-                        password
-                    )
-                    VALUES (
-                    '{us}',
-                        '{ps}'
-                    );''')
         self.conn.commit()
 
     def dann(self, event):
