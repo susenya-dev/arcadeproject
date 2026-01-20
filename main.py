@@ -1,9 +1,16 @@
 import arcade
+from arcade.types import Color
 import math
+from functools import lru_cache
 
 SCREEN_WIDTH = 1980
 SCREEN_HEIGHT = 1080
 SCREEN_TITLE = "Альфа версия"
+
+
+@lru_cache(maxsize=8)
+def load_tilemap_cached(filename: str, scaling: float = 1.0) -> arcade.TileMap:
+    return arcade.load_tilemap(filename, scaling=scaling)
 
 
 def load_textures(path, count):
@@ -38,12 +45,20 @@ class AnimatedSprite(arcade.Sprite):
 
 
 class NPC(AnimatedSprite):
-    textures_right, textures_left = load_textures(
-        "assets/car/Green_COUPE_CLEAN_EAST_00", 10
-    )
+    # Текстуры загружаются при первом использовании
+    textures_loaded = False
+    textures_right = None
+    textures_left = None
 
     def __init__(self, point_a, point_b, speed, facing_right):
         super().__init__(speed)
+
+        # Загружаем текстуры если нужно
+        if not NPC.textures_loaded:
+            NPC.textures_right, NPC.textures_left = load_textures(
+                "assets/car/Green_COUPE_CLEAN_EAST_00", 10
+            )
+            NPC._textures_loaded = True
 
         self.scale = 1
         self.textures_right = NPC.textures_right
@@ -71,14 +86,26 @@ class NPC(AnimatedSprite):
         self.center_y += dy / dist * self.speed * delta_time
 
 
+
 class Player(AnimatedSprite):
-    textures_right, textures_left = load_textures("assets/duck/duck", 7)
-    idle_right = arcade.load_texture("assets/duck/duck0.png")
-    idle_left = idle_right.flip_left_right()
+    textures_loaded = False
+    textures_right = None
+    textures_left = None
+    idle_right = None
+    idle_left = None
 
     def __init__(self, x, y):
-
         super().__init__(speed=1)
+
+        # Загружаем текстуры если нужно
+        if not Player.textures_loaded:
+            Player.textures_right, Player.textures_left = load_textures(
+                "assets/duck/duck", 7
+            )
+            Player.idle_right = arcade.load_texture("assets/duck/duck0.png")
+            Player.idle_left = Player.idle_right.flip_left_right()
+            Player.textures_loaded = True
+
         self.scale = 1
         self.textures_right = Player.textures_right
         self.textures_left = Player.textures_left
@@ -94,13 +121,30 @@ class Player(AnimatedSprite):
             self.texture = Player.idle_right if self.facing_right else Player.idle_left
 
 
-class MyGame(arcade.Window):
+class LevelManager:
+    def __init__(self):
+        self.maps = [f"assets/maps/city{i}.tmx" for i in range(2)]
+        self.current_level = 0
+
+    def load_current(self):
+        return load_tilemap_cached(self.maps[self.current_level], scaling=1.5)
+
+    def next_level(self):
+        self.current_level = (self.current_level + 1) % len(self.maps)
+        return self.load_current()
+
+
+class Game(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
-        arcade.set_background_color(arcade.color.GREEN)
-
+        arcade.set_background_color(arcade.types.Color.from_hex_string("#70A853"))
+        self.level_manager = LevelManager()
         self.camera = arcade.Camera2D()
         self.camera_speed = 400
+
+        self.fade_alpha = 0
+        self.fade_state = 0
+        self.fade_speed = 800
 
         self.camera_shake = arcade.camera.grips.ScreenShake2D(
             self.camera.view_data,
@@ -111,58 +155,74 @@ class MyGame(arcade.Window):
         )
 
     def setup(self):
-        self.player_list = arcade.SpriteList()
-        self.npc_list = arcade.SpriteList()
+        self.player_list = arcade.SpriteList(use_spatial_hash=True)
+        self.npc_list = arcade.SpriteList(use_spatial_hash=True)
 
-        tile_map = arcade.load_tilemap("assets/maps/city0.tmx", scaling=1.5)
+        self.load_level(first=True)
 
-        self.grass_list = tile_map.sprite_lists["grass"]
-        self.road_list = tile_map.sprite_lists["road"]
-        self.rivers_list = tile_map.sprite_lists["river"]
-        self.collisions_list = tile_map.sprite_lists["collisions"]
-        self.decorations_list = tile_map.sprite_lists["decorations"]
-        self.trees_list = tile_map.sprite_lists["trees"]
         self.player = Player(self.width // 2, self.height // 5)
         self.player_list.append(self.player)
-
-        self.npc_list.extend([
-            NPC((3300, 360), (200, 360), 1000, False),
-            NPC((250, 325), (3000, 325), 800, True),
-            NPC((2800, 420), (250, 420), 600, False),
-            NPC((250, 465), (3000, 465), 1200, True),
-
-            NPC((3300, 740), (200, 740), 700, False),
-            NPC((250, 705), (3000, 705), 800, True),
-            NPC((2800, 800), (250, 800), 900, False),
-            NPC((250, 845), (3000, 845), 1000, True)
-        ])
 
         self.physics_engine = arcade.PhysicsEngineSimple(
             self.player, self.collisions_list
         )
 
-        self.camera.position = (self.width // 2, self.height // 2)
+        self.camera.position = (self.width // 2, self.height // 6)
 
-    def game_over(self):
-        self.camera_shake.start()
-        self.setup()
+    def load_level(self, first=False):
+        if not first:
+            tile_map = self.level_manager.next_level()
+        else:
+            tile_map = self.level_manager.load_current()
+
+        self.map_height = tile_map.height * tile_map.tile_height
+        self.grass_list = tile_map.sprite_lists["grass"]
+        self.road_list = tile_map.sprite_lists["road"]
+        self.rivers_list = tile_map.sprite_lists["river"]
+        self.collisions_list = tile_map.sprite_lists["collisions"]
+        # self.decorations_list = tile_map.sprite_lists["decorations"]
+        # self.trees_list = tile_map.sprite_lists["trees"]
+
+        self.npc_list.clear()
+        self.npc_list.extend([
+            NPC((2000, 360), (-100, 360), 1000, False),
+            NPC((10, 705), (3000, 705), 800, True),
+            NPC((2800, 800), (10, 800), 900, False),
+        ])
+
+        if hasattr(self, "player"):
+            self.player.center_x = self.width // 2
+            self.player.center_y = self.height // 5
+            self.camera.position = (
+                self.player.center_x,
+                self.player.center_y
+            )
+            self.physics_engine = arcade.PhysicsEngineSimple(
+                self.player, self.collisions_list
+            )
 
     def on_draw(self):
         self.clear()
-        self.camera_shake.update_camera()
         self.camera.use()
 
         self.collisions_list.draw()
         self.grass_list.draw()
         self.road_list.draw()
         self.rivers_list.draw()
-        self.decorations_list.draw()
-        self.trees_list.draw()
+        # self.decorations_list.draw()
+        # self.trees_list.draw()
 
         self.player_list.draw()
         self.npc_list.draw()
 
-        self.camera_shake.readjust_camera()
+        if self.fade_alpha > 0:
+            arcade.draw_lbwh_rectangle_filled(
+                0,
+                0,
+                100000,
+                100000,
+                (0, 0, 0, int(self.fade_alpha))
+            )
 
     def on_update(self, delta_time):
         self.player_list.update()
@@ -181,13 +241,33 @@ class MyGame(arcade.Window):
         if self.player.center_y > cam_y:
             cam_y = self.player.center_y
 
+        if self.player.center_y + 550 < cam_y:
+            self.setup()
+
         self.camera.position = arcade.math.lerp_2d(
             self.camera.position, (cam_x, cam_y), 0.12
         )
 
+        # === ПЕРЕХОД НА СЛЕДУЮЩУЮ КАРТУ ===
+        if self.player.center_y > self.map_height - 200 and self.fade_state == 0:
+            self.fade_state = 1
+
         # Столкновение с NPC
         if arcade.check_for_collision_with_list(self.player, self.npc_list):
-            self.game_over()
+            self.setup()
+
+        if self.fade_state == 1:  # затемнение
+            self.fade_alpha += self.fade_speed * delta_time
+            if self.fade_alpha >= 255:
+                self.fade_alpha = 255
+                self.load_level()
+                self.fade_state = 2
+
+        elif self.fade_state == 2:  # проявление
+            self.fade_alpha -= self.fade_speed * delta_time
+            if self.fade_alpha <= 0:
+                self.fade_alpha = 0
+                self.fade_state = 0
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.W:
@@ -214,11 +294,10 @@ class MyGame(arcade.Window):
 
 
 def main():
-    game = MyGame()
+    game = Game()
     game.setup()
     arcade.run()
 
 
 if __name__ == "__main__":
     main()
-
