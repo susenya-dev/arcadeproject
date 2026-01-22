@@ -1,3 +1,4 @@
+import sqlite3
 import arcade
 from arcade.gui import UIManager, UIFlatButton, UILabel, UIBoxLayout, UIAnchorLayout, UIMessageBox, UIInputText
 import string as st
@@ -75,22 +76,79 @@ class MyGUIWindow(arcade.Window):
 
     def menlog(self, input_text1, input_text2):
         self.login_user(input_text1, input_text2)
-        self.show_main_menu(None)
+        # self.show_main_menu(None)
 
     # пароль ник
     def login_user(self, input_text1, input_text2):
+        self.conn = sqlite3.connect("assets/game.db")
+        self.cursor = self.conn.cursor()
+
+        us = ps = ""
         f = open("assets/player.txt", "w", encoding="utf-8")
         if (input_text1.text != "" and input_text2.text != "" and (input_text1.text != "Введи имя"
                                                                    and input_text2.text != "Введи пароль")):
             username = input_text1.text
             password = input_text2.text
+            us = username
+            ps = password
 
-            print(username, file=f)
-            print(password, file=f)
         elif (input_text1.text == "" and input_text2.text == "" or (input_text1.text == "Введи имя"
                                                                     and input_text2.text == "Введи пароль")):
-            print(f"user_{''.join(main(3, 1))}", file=f)
-            print("".join(main(10, 1)), file=f)
+            us = f"user_{''.join(main(3, 1))}"
+            ps = "".join(main(10, 1))
+
+        elif (input_text1.text == "Введи имя" or input_text1.text == "") and (
+                input_text2.text != "" or input_text2.text != "Введи пароль"):
+            us = f"user_{''.join(main(3, 1))}"
+            ps = input_text2.text
+
+        elif (input_text1.text != "Введи имя" or input_text1.text != "") and (
+                input_text2.text == "" or input_text2.text == "Введи пароль"):
+            us = input_text1.text
+            ps = "".join(main(10, 1))
+
+        sp = self.cursor.execute(f'''SELECT user,
+                password
+                FROM leaders WHERE user like "{us}"''').fetchall()
+
+        if len(sp) == 0:
+            self.show_main_menu(None)
+            self.cursor.execute(f'''INSERT INTO leaders (
+                                    user,
+                                    password
+                                )
+                                VALUES (
+                                '{us}',
+                                    '{ps}'
+                                );''')
+            print(str(us), file=f)
+            print(str(ps), file=f)
+
+        elif len(sp) != 0 and sp[0][-1] != ps:
+            message_box = UIMessageBox(
+                width=300, height=200,
+                message_text=f"Неверный пароль",
+                buttons=("OK",)
+            )
+            message_box.on_action = self.on_message_button
+            self.manager.add(message_box)
+        elif len(sp) != 0 and sp[0][-1] == ps:
+            self.show_main_menu(None)
+            print(str(us), file=f)
+            print(str(ps), file=f)
+        f.close()
+
+        self.conn.commit()
+
+    def dann(self, event):
+        f = open("assets/player.txt").readlines()
+        message_box = UIMessageBox(
+            width=300, height=200,
+            message_text=f"Данные аккаунта\nимя: {f[0]}пароль: {f[1]}",
+            buttons=("OK",)
+        )
+        message_box.on_action = self.on_message_button
+        self.manager.add(message_box)
 
         elif (input_text1.text == "Введи имя" or input_text1.text == "") and (
                 input_text2.text != "" or input_text2.text != "Введи пароль"):
