@@ -361,7 +361,6 @@ class Game(arcade.Window):
 
     def on_key_release(self, key, modifiers):
         if key in (arcade.key.W, arcade.key.S):
-            self.player.change_y = 0
         elif key in (arcade.key.A, arcade.key.D):
             self.player.change_x = 0
         self.player.walking = False
