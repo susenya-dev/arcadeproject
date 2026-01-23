@@ -2,6 +2,8 @@ import arcade
 from arcade.types import Color
 import math
 from functools import lru_cache
+import datetime
+from pyglet.graphics import Batch
 
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
@@ -98,12 +100,17 @@ class Player(AnimatedSprite):
 
         if not Player._textures_loaded:
             Player._textures_right, Player._textures_left = load_textures(
-                "assets/duck/duck", 7
+                "assets/duck/duck", 4
             )
             Player._idle_right = arcade.load_texture("assets/duck/duck0.png")
             Player._idle_left = Player._idle_right.flip_left_right()
             Player._textures_loaded = True
 
+            # Player._textures_right, Player._textures_left = load_textures(
+            #     "assets/pupa/", 4
+            # )
+            # Player._idle_right = arcade.load_texture("assets/pupa/0.png")
+            # self.scale = 2
         self.scale = 1
         self.textures_right = Player._textures_right
         self.textures_left = Player._textures_left
@@ -165,11 +172,16 @@ class Game(arcade.Window):
         arcade.set_background_color(arcade.types.Color.from_hex_string("#70A853"))
         self.level_manager = LevelManager()
         self.camera = arcade.Camera2D()
+        self.wd_cam = arcade.Camera2D()
         self.camera_speed = 0
 
         self.fade_alpha = 0
         self.fade_state = 0
         self.fade_speed = 800
+        self.score = 0
+
+        self.start_time = None
+        self.game_time = 0
 
         self.camera_shake = arcade.camera.grips.ScreenShake2D(
             self.camera.view_data,
@@ -195,6 +207,10 @@ class Game(arcade.Window):
         )
 
         self.camera.position = (self.width // 2, self.height // 6)
+
+        self.batch = Batch()
+        self.start_time = datetime.datetime.now()
+        self.game_time = 0
 
     def load_level(self, first=False):
         if not first:
@@ -246,6 +262,7 @@ class Game(arcade.Window):
         self.clear()
         self.camera.use()
 
+
         self.grass_list.draw()
         self.coin_list.draw()
         # self.road_list.draw()
@@ -258,6 +275,10 @@ class Game(arcade.Window):
         self.player_list.draw()
         self.npc_list.draw()
 
+        self.wd_cam.use()
+        self.batch.draw()
+
+
         if self.fade_alpha > 0:
             arcade.draw_lbwh_rectangle_filled(
                 0,
@@ -266,6 +287,8 @@ class Game(arcade.Window):
                 1000000,
                 (0, 0, 0, int(self.fade_alpha))
             )
+
+
 
     def on_update(self, delta_time):
         self.player_list.update()
@@ -278,6 +301,8 @@ class Game(arcade.Window):
 
         self.physics_engine.update()
         self.camera_shake.update(delta_time)
+
+        self.game_time += delta_time
 
         # Камера едет вверх
         cam_x, cam_y = self.camera.position
@@ -292,12 +317,18 @@ class Game(arcade.Window):
             self.camera.position, (cam_x, cam_y), 0.12
         )
 
-        # === ПЕРЕХОД НА СЛЕДУЮЩУЮ КАРТУ ===
+        chk = arcade.check_for_collision_with_list(self.player, self.coin_list)
+        for i in chk:
+            i.remove_from_sprite_lists()
+            self.score += 1
+
         if self.player.center_y > self.map_height - 200 and self.fade_state == 0:
             self.fade_state = 1
 
         if arcade.check_for_collision_with_list(self.player, self.npc_list):
-            self.setup()
+            self.load_level(first=False)
+            self.player.center_x = self.width // 2
+            self.player.center_y = self.height // 5
 
         # self.player.on_ground = False
 
@@ -322,9 +353,10 @@ class Game(arcade.Window):
         #     if self.player.center_y < 1200:
         #         self.player.is_jumping = False
 
-        if arcade.check_for_collision_with_list(self.player, self.rivers_list) and self.player.on_ground == False:
-            # self.player.on_ground = False
-            self.setup()
+        if arcade.check_for_collision_with_list(self.player, self.rivers_list) and not self.player.on_ground:
+            self.load_level(first=False)
+            self.player.center_x = self.width // 2
+            self.player.center_y = self.height // 5
             print("FALL")
 
         if self.fade_state == 1:  # затемнение
@@ -339,6 +371,12 @@ class Game(arcade.Window):
             if self.fade_alpha <= 0:
                 self.fade_alpha = 0
                 self.fade_state = 0
+
+        time_str = f'Time: {int(self.game_time // 60):02d}:{int(self.game_time % 60):02d}'
+
+        self.text = arcade.Text(f'''Score: {self.score}   {time_str}''',
+                                10, self.height - 30, arcade.color.WHITE,
+                                24, batch=self.batch)
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.W:
@@ -361,6 +399,7 @@ class Game(arcade.Window):
 
     def on_key_release(self, key, modifiers):
         if key in (arcade.key.W, arcade.key.S):
+            self.player.change_y = 0
         elif key in (arcade.key.A, arcade.key.D):
             self.player.change_x = 0
         self.player.walking = False
