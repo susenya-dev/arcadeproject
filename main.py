@@ -20,7 +20,7 @@ def connect_to_db():
 def update_rating():
     """Обновляет рейтинг текущего игрока"""
     with open("assets/player.txt", "r", encoding="utf-8") as f:
-        user_name = f.readline()
+        user_name = f.readline().strip()
 
     conn = connect_to_db()
     cur = conn.cursor()
@@ -28,6 +28,7 @@ def update_rating():
         f"UPDATE leaders SET coins_count = coins_count + 1 WHERE id = (SELECT id FROM leaders WHERE user = '{user_name}')")
     conn.commit()
     conn.close()
+    print(user_name)
 
 
 @lru_cache(maxsize=8)
