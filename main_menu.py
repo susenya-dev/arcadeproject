@@ -1,8 +1,12 @@
 import sqlite3
+import time
 import arcade
-from arcade.gui import UIManager, UIFlatButton, UILabel, UIBoxLayout, UIAnchorLayout, UIMessageBox, UIInputText
+from arcade.gui import UIManager, UIFlatButton, UILabel, UIBoxLayout, UIAnchorLayout, UIMessageBox, UIInputText, \
+    UITextureButton
 import string as st
 import random
+from main import Game
+from arcade.gui import UITextWidget
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -36,12 +40,14 @@ class MyGUIWindow(arcade.Window):
         self.manager.enable()  # Включить, чтоб виджеты работали
 
         # Layout для организации
-        self.anchor_layout = UIAnchorLayout()  # Центрирует виджеты
-        self.user_layout = UIBoxLayout(vertical=True, space_between=10)
-        self.main_layout = UIBoxLayout(vertical=True, space_between=10)  # Вертикальный стек для главного меню
-        self.level_layout = UIBoxLayout(vertical=True, space_between=10)  # Вертикальный стек для выбора уровня
+        self.anchor_layout = UIAnchorLayout()
+        # Центрирует виджеты
 
-        # Изначально показываем главное меню
+        self.user_layout = UIBoxLayout(vertical=True, space_between=10)
+        self.main_layout = UIBoxLayout(vertical=True, space_between=10)
+        self.level_layout = UIBoxLayout(vertical=True, space_between=10)
+        self.shop_layout = UIBoxLayout(vertical=True, space_between=10)
+
         f = open("assets/player.txt").readlines()
         if len(f) == 0:
             self.current_layout = self.user_layout
@@ -52,6 +58,86 @@ class MyGUIWindow(arcade.Window):
 
         self.anchor_layout.add(self.current_layout)  # Добавляем текущий layout в anchor
         self.manager.add(self.anchor_layout)  # Всё в manager
+        self.current_mode = "menu"
+        self.game_instance = None
+
+    def shop_menu(self):
+        self.shop_layout.clear()
+
+        initial_texture = arcade.load_texture("assets/shop_foto/1.png")
+
+        back_button = UIFlatButton(
+            text="Назад в меню",
+            width=200,
+            height=50,
+            color=arcade.color.RED
+        )
+        back_button.on_click = self.show_main_menu
+        self.shop_layout.add(back_button)
+
+        shop_label = UILabel(
+            text="Магазин",
+            font_size=20,
+            text_color=arcade.color.WHITE,
+            width=300,
+            align="center"
+        )
+        self.shop_layout.add(shop_label)
+
+        character1_button = UIFlatButton(
+            text="Персонаж 1",
+            width=200,
+            height=50,
+            color=arcade.color.GRAY
+        )
+        character1_button.on_click = lambda event: self.shop_button_clicked(1)
+        self.shop_layout.add(character1_button)
+
+        character2_button = UIFlatButton(
+            text="Персонаж 2",
+            width=200,
+            height=50,
+            color=arcade.color.GRAY
+        )
+        character2_button.on_click = lambda event: self.shop_button_clicked(2)
+        self.shop_layout.add(character2_button)
+
+        character3_button = UIFlatButton(
+            text="Персонаж 3",
+            width=200,
+            height=50,
+            color=arcade.color.GRAY
+        )
+        character3_button.on_click = lambda event: self.shop_button_clicked(3)
+        self.shop_layout.add(character3_button)
+
+        self.texture_widget = UITextureButton(
+            texture=initial_texture,
+            texture_hovered=initial_texture,
+            texture_pressed=initial_texture,
+            text="",
+            width=100,
+            height=100
+        )
+        self.shop_layout.add(self.texture_widget)
+
+        self.sw_layout(self.shop_layout)
+
+    def shop_button_clicked(self, param):
+        new_texture = arcade.load_texture(f"assets/shop_foto/{param}.png")
+
+        self.texture_widget.texture = new_texture
+        self.texture_widget.texture_hovered = new_texture
+        self.texture_widget.texture_pressed = new_texture
+        self.texture_widget.trigger_render()
+
+    def start_game(self, event):
+        self.current_mode = "game"
+
+        self.game_instance = Game()
+        self.game_instance.setup()
+        self.manager.disable()
+        self.manager.clear()
 
     def user_menu(self):
         self.user_layout.clear()
@@ -83,6 +169,7 @@ class MyGUIWindow(arcade.Window):
         self.conn = sqlite3.connect("assets/game.db")
         self.cursor = self.conn.cursor()
 
+        # генерация паролей
         us = ps = ""
         f = open("assets/player.txt", "w", encoding="utf-8")
         if (input_text1.text != "" and input_text2.text != "" and (input_text1.text != "Введи имя"
@@ -111,6 +198,7 @@ class MyGUIWindow(arcade.Window):
                 password
                 FROM leaders WHERE user like "{us}"''').fetchall()
 
+        # проверка на наличие аккаунта
         if len(sp) == 0:
             self.show_main_menu(None)
             self.cursor.execute(f'''INSERT INTO leaders (
@@ -136,29 +224,9 @@ class MyGUIWindow(arcade.Window):
             self.show_main_menu(None)
             print(str(us), file=f)
             print(str(ps), file=f)
-        f.close()
+        # f.close()
 
         self.conn.commit()
-
-    def dann(self, event):
-        f = open("assets/player.txt").readlines()
-        message_box = UIMessageBox(
-            width=300, height=200,
-            message_text=f"Данные аккаунта\nимя: {f[0]}пароль: {f[1]}",
-            buttons=("OK",)
-        )
-        message_box.on_action = self.on_message_button
-        self.manager.add(message_box)
-
-        elif (input_text1.text == "Введи имя" or input_text1.text == "") and (
-                input_text2.text != "" or input_text2.text != "Введи пароль"):
-            print(f"user_{''.join(main(3, 1))}", file=f)
-            print(input_text2.text, file=f)
-
-        elif (input_text1.text != "Введи имя" or input_text1.text != "") and (
-                input_text2.text == "" or input_text2.text == "Введи пароль"):
-            print(input_text1.text, file=f)
-            print("".join(main(10, 1)), file=f)
 
     def dann(self, event):
         f = open("assets/player.txt").readlines()
@@ -174,7 +242,7 @@ class MyGUIWindow(arcade.Window):
         self.main_layout.clear()
 
         label = UILabel(
-            text="CrossWay2D",
+            text="CrossyWay2D",
             font_size=20,
             text_color=arcade.color.WHITE,
             width=300,
@@ -197,7 +265,7 @@ class MyGUIWindow(arcade.Window):
             height=50,
             color=arcade.color.BLUE
         )
-        shop_button.on_click = self.on_button_click
+        shop_button.on_click = self.show_shop
         self.main_layout.add(shop_button)
 
         # Кнопка "Настройки"
@@ -225,6 +293,9 @@ class MyGUIWindow(arcade.Window):
         )
         settings_button2.on_click = self.delet_user
         self.main_layout.add(settings_button2)
+
+    def show_shop(self, event):
+        self.shop_menu()
 
     def show_rating(self, event):
 
@@ -284,8 +355,14 @@ class MyGUIWindow(arcade.Window):
             height=50,
             color=arcade.color.RED
         )
-        level3_button.on_click = lambda event: self.start_level()
+        level3_button.on_click = lambda event: self.zapusk_igri(event)
         self.level_layout.add(level3_button)
+
+    def zapusk_igri(self, event):
+        self.close()
+        time.sleep(0.3)
+        from main import main as m
+        m()
 
     def show_levels(self, event):
         self.setup_level_menu()
@@ -300,6 +377,12 @@ class MyGUIWindow(arcade.Window):
 
         self.current_layout = new_layout
         self.anchor_layout.add(self.current_layout)
+
+    def sw_layout2(self, new_layout):
+        self.anchor_layout2.remove(self.current_layout)
+
+        self.current_layout = new_layout
+        self.anchor_layout2.add(self.current_layout)
 
     def start_level(self):
         message_box = UIMessageBox(
@@ -324,7 +407,18 @@ class MyGUIWindow(arcade.Window):
 
     def on_draw(self):
         self.clear()
-        self.manager.draw()  # Рисуй GUI поверх всего
+        self.manager.draw()
+        arcade.draw_text(
+            "CrossyWayAlpha: 0.2",
+            10,
+            10,
+            arcade.color.WHITE,
+            10,  # Размер шрифта
+            font_name="Arial",
+            anchor_x="left",
+            anchor_y="bottom"
+        )
+        # Рисуй GUI поверх всего
 
     def on_mouse_press(self, x, y, button, modifiers):
         pass  # Для кликов, но manager сам обрабатывает
