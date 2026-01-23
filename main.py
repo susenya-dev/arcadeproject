@@ -1,13 +1,33 @@
 import arcade
-from arcade.types import Color
 import math
 from functools import lru_cache
 import datetime
 from pyglet.graphics import Batch
+import sqlite3
+
 
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
 SCREEN_TITLE = "Альфа версия"
+
+
+def connect_to_db():
+    """Подключается к БД"""
+    conn = sqlite3.connect("assets/game.db")
+    return conn
+
+
+def update_rating():
+    """Обновляет рейтинг текущего игрока"""
+    with open("assets/player.txt", "r", encoding="utf-8") as f:
+        user_name = f.readline()
+
+    conn = connect_to_db()
+    cur = conn.cursor()
+    cur.execute(
+        f"UPDATE leaders SET coins_count = coins_count + 1 WHERE id = (SELECT id FROM leaders WHERE user = '{user_name}')")
+    conn.commit()
+    conn.close()
 
 
 @lru_cache(maxsize=8)
@@ -100,7 +120,7 @@ class Player(AnimatedSprite):
 
         if not Player._textures_loaded:
             Player._textures_right, Player._textures_left = load_textures(
-                "assets/duck/duck", 4
+                "assets/duck/duck", 7
             )
             Player._idle_right = arcade.load_texture("assets/duck/duck0.png")
             Player._idle_left = Player._idle_right.flip_left_right()
@@ -173,7 +193,7 @@ class Game(arcade.Window):
         self.level_manager = LevelManager()
         self.camera = arcade.Camera2D()
         self.wd_cam = arcade.Camera2D()
-        self.camera_speed = 0
+        self.camera_speed = 500
 
         self.fade_alpha = 0
         self.fade_state = 0
@@ -311,7 +331,9 @@ class Game(arcade.Window):
             cam_y = self.player.center_y
 
         if self.player.center_y + 550 < cam_y:
-            self.setup()
+            self.load_level(first=False)
+            self.player.center_x = self.width // 2
+            self.player.center_y = self.height // 5
 
         self.camera.position = arcade.math.lerp_2d(
             self.camera.position, (cam_x, cam_y), 0.12
@@ -321,6 +343,7 @@ class Game(arcade.Window):
         for i in chk:
             i.remove_from_sprite_lists()
             self.score += 1
+            update_rating()
 
         if self.player.center_y > self.map_height - 200 and self.fade_state == 0:
             self.fade_state = 1
