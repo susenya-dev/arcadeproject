@@ -203,11 +203,11 @@ class MyGUIWindow(arcade.Window):
             self.show_main_menu(None)
             self.cursor.execute(f'''INSERT INTO leaders (
                                     user,
-                                    password
+                                    password, coins_count, time_of_game, skin
                                 )
                                 VALUES (
                                 '{us}',
-                                    '{ps}'
+                                    '{ps}', 0, 0, 0
                                 );''')
             print(str(us), file=f)
             print(str(ps), file=f)
@@ -291,7 +291,7 @@ class MyGUIWindow(arcade.Window):
             height=50,
             color=arcade.color.BLUE
         )
-        settings_button2.on_click = self.delet_user
+        settings_button2.on_click = self.delete_user
         self.main_layout.add(settings_button2)
 
     def show_shop(self, event):
@@ -302,7 +302,7 @@ class MyGUIWindow(arcade.Window):
         from ledboard import show_rating_in_window
         show_rating_in_window(self)
 
-    def delet_user(self, event=None):
+    def delete_user(self, event=None):
         open("assets/player.txt", 'w').close()
         self.level_layout.clear()
 
