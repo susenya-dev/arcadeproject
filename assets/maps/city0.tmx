@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="123" height="160" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="1">
- <editorsettings>
-  <export target="city0..tmx" format="tmx"/>
- </editorsettings>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="123" height="160" tilewidth="16" tileheight="16" infinite="0" nextlayerid="11" nextobjectid="1">
  <tileset firstgid="1" name="City Prop Tileset update 2" tilewidth="16" tileheight="16" tilecount="768" columns="32">
   <image source="../tiles/City Prop Tileset update 2.png" width="512" height="384"/>
  </tileset>
@@ -18,7 +15,7 @@
  <tileset firstgid="1155" name="CP_V1.0.4" tilewidth="16" tileheight="16" tilecount="4096" columns="64">
   <image source="../tiles/CP_V1.0.4.png" width="1024" height="1024"/>
  </tileset>
- <tileset firstgid="5251" name="Green_COUPE_CLEAN_EAST_000" tilewidth="16" tileheight="16" tilecount="36" columns="6">
+ <tileset firstgid="5251" name="Green_COUPE_CLEAN_EAST_000" tilewidth="16" tileheight="16" tilecount="0" columns="6">
   <image source="../car/Green_COUPE_CLEAN_EAST_000.png" width="100" height="100"/>
  </tileset>
  <layer id="7" name="grass" width="123" height="160">
@@ -28,7 +25,12 @@
  </layer>
  <layer id="8" name="river" width="123" height="160">
   <data encoding="base64" compression="zlib">
-   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
+   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
+  </data>
+ </layer>
+ <layer id="10" name="coastline" width="123" height="160">
+  <data encoding="base64" compression="zlib">
+   eJzt3LENgDAMRUFLnjsMxD5kHmgoKZMQ606ynqf4EQAAAAAAAAAAAAAAwG5aRhypVQsAAAAAAAAAAKOd6arf63r+nlq5AAAAAAAAAAAAAAAAAMy1estcxxcAAAAA+LZ6Z83ZslNbdgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwBzezluk6
   </data>
  </layer>
  <layer id="9" name="collisions" width="123" height="160">
