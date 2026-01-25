@@ -51,7 +51,7 @@ def update_time(current_time):
         f"UPDATE leaders SET time_of_game = {current_time} WHERE id = (SELECT id FROM leaders WHERE user = '{user_name}') AND {current_time} > time_of_game")
     conn.commit()
     conn.close()
-    print(user_name)
+    # print(user_name)
 
 
 @lru_cache(maxsize=8)
@@ -71,7 +71,7 @@ def generate_logs(start_x, end_x, start_y, end_y):
 
     while y <= end_y:
         x = randint(start_x, end_x)
-        speed = randint(48, 52)
+        speed = randint(48, 51)
         logs.append(FloatingLog(x, y, speed))
         y += 48
     return logs
@@ -233,13 +233,14 @@ class LevelManager:
 
 
 class Game(arcade.Window):
-    def __init__(self):
+    def __init__(self, camera_speed):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
         arcade.set_background_color(arcade.types.Color.from_hex_string("#70A853"))
         self.level_manager = LevelManager()
+        # self.current_level = self.level_manager.current_level
         self.camera = arcade.Camera2D()
         self.wd_cam = arcade.Camera2D()
-        self.camera_speed = 500
+        self.camera_speed = camera_speed
 
         self.fade_alpha = 0
         self.fade_state = 0
@@ -256,6 +257,7 @@ class Game(arcade.Window):
             falloff_time=0.1,
             shake_frequency=30,
         )
+        self.jumping_ability = False
 
     def setup(self):
         self.player_list = arcade.SpriteList(use_spatial_hash=True)
@@ -281,9 +283,10 @@ class Game(arcade.Window):
     def load_level(self, first=False):
         if not first:
             tile_map = self.level_manager.next_level()
+            # print(self.level_manager.current_level)
         else:
             tile_map = self.level_manager.load_current()
-
+            # print(self.level_manager.current_level)
         self.map_height = tile_map.height * tile_map.tile_height
         self.grass_list = tile_map.sprite_lists["grass"]
         # self.road_list = tile_map.sprite_lists["road"]
@@ -294,61 +297,58 @@ class Game(arcade.Window):
         # self.trees_list = tile_map.sprite_lists["trees"]
 
         self.npc_list.clear()
-        self.npc_list.extend([
-            NPC((2000, 264), (-100, 264), 1000, False, CARS[0]),
-            NPC((2000, 480), (-100, 480), 1000, False, CARS[0]),
-            NPC((-100, 544), (2000, 544), 1000, True, CARS[0])
-            # NPC((10, 705), (3000, 705), 800, True),
-            # NPC((2800, 800), (10, 800), 900, False),
-        ])
-
-        self.npc_list.extend(generate_cars(690, 912))
-        self.npc_list.extend(generate_cars(1024, 1150))
-        self.npc_list.extend(generate_cars(1490, 1730))
         self.log_list.clear()
-
-        # for _ in range(4):
-        #     speed = randint(48, 52)
-        #     x, y = randint(300, 400), randint(1200, )
-        #     FloatingLog()
-        # self.log_list.extend([
-        #     FloatingLog(400, 1200, 50),
-        #     FloatingLog(400, 1248, 50),
-        #     FloatingLog(400, 1296, 50),
-        #     FloatingLog(420, 1344, 50),
-        #
-        #     FloatingLog(660, 1200, 55),
-        #     FloatingLog(700, 1248, 50),
-        #     FloatingLog(750, 1296, 50),
-        #     FloatingLog(800, 1344, 50),
-        #
-        #     FloatingLog(350, 1848, 50),
-        #     FloatingLog(350, 1896, 50),
-        #     FloatingLog(350, 1944, 50),
-        #     FloatingLog(350, 1992, 50),
-        #     FloatingLog(350, 2040, 50),
-        #     FloatingLog(350, 2088, 50),
-        #     FloatingLog(350, 2136, 50),
-        #
-        # ])
-
-        self.log_list.extend(generate_logs(390, 420, 1200, 1352))
-        self.log_list.extend(generate_logs(200, 250, 1200, 1352))
-        self.log_list.extend(generate_logs(550, 700, 1200, 1352))
-
-        self.log_list.extend(generate_logs(390, 420, 1848, 2140))
-        self.log_list.extend(generate_logs(0, 100, 1848, 2140))
-        self.log_list.extend(generate_logs(-260, -250, 1848, 2140))
-        self.log_list.extend(generate_logs(-460, -450, 1848, 2140))
-        self.log_list.extend(generate_logs(800, 900, 1848, 2140))
-
         self.coin_list.clear()
+
+        if self.level_manager.current_level == 0:
+            self.npc_list.extend([
+                NPC((2000, 264), (-100, 264), 1000, False, CARS[0]),
+                NPC((2000, 480), (-100, 480), 1000, False, CARS[0]),
+                NPC((-100, 544), (2000, 544), 1000, True, CARS[0])
+            ])
+
+            self.npc_list.extend(generate_cars(690, 912))
+            self.npc_list.extend(generate_cars(1024, 1150))
+            self.npc_list.extend(generate_cars(1490, 1730))
+
+            self.log_list.extend(generate_logs(390, 420, 1200, 1352))
+            self.log_list.extend(generate_logs(200, 250, 1200, 1352))
+            self.log_list.extend(generate_logs(550, 700, 1200, 1352))
+
+            self.log_list.extend(generate_logs(390, 420, 1848, 2140))
+            self.log_list.extend(generate_logs(0, 10, 1848, 2140))
+            self.log_list.extend(generate_logs(-260, -250, 1848, 2140))
+            self.log_list.extend(generate_logs(-460, -450, 1848, 2140))
+            self.log_list.extend(generate_logs(800, 820, 1848, 2140))
+
+
+
+
+        elif self.level_manager.current_level == 1:
+
+            self.npc_list.extend(generate_cars(280, 510))
+            self.npc_list.extend(generate_cars(688, 930))
+            self.npc_list.extend(generate_cars(1480, 1590))
+            self.npc_list.extend(generate_cars(2000, 2112))
+
+            self.log_list.extend(generate_logs(390, 420, 1060, 1120))
+            self.log_list.extend(generate_logs(200, 220, 1060, 1120))
+
+            self.log_list.extend(generate_logs(390, 420, 1320, 1376))
+            self.log_list.extend(generate_logs(200, 220, 1320, 1376))
+
+            self.log_list.extend(generate_logs(-120, -110, 1670, 1824))
+            self.log_list.extend(generate_logs(0, 20, 1670, 1824))
+            self.log_list.extend(generate_logs(100, 120, 1670, 1824))
+            self.log_list.extend(generate_logs(200, 220, 1670, 1824))
+            self.log_list.extend(generate_logs(390, 420, 1670, 1824))
+            self.log_list.extend(generate_logs(590, 620, 1670, 1824))
+
         for _ in range(100):
             point1 = arcade.math.rand_in_circle((1920 // 2, 2560 // 2), 2560)
             coin = Coin(point1[0], point1[1])
 
             self.coin_list.append(coin)
-
         if hasattr(self, "player"):
             self.player.center_x = self.width // 2
             self.player.center_y = self.height // 5
@@ -373,7 +373,6 @@ class Game(arcade.Window):
 
         self.grass_list.draw()
         self.coin_list.draw()
-        # self.road_list.draw()
         self.rivers_list.draw()
         self.coastline_list.draw()
         self.log_list.draw()
@@ -421,6 +420,11 @@ class Game(arcade.Window):
             self.camera.position, (cam_x, cam_y), 0.12
         )
 
+        if arcade.check_for_collision_with_list(self.player, self.coastline_list) and self.jumping_ability == False:
+            self.jumping_ability = True
+        if arcade.check_for_collision_with_list(self.player, self.grass_list) and self.jumping_ability == True:
+            self.jumping_ability = False
+
         chk = arcade.check_for_collision_with_list(self.player, self.coin_list)
         for i in chk:
             i.remove_from_sprite_lists()
@@ -433,34 +437,18 @@ class Game(arcade.Window):
         if arcade.check_for_collision_with_list(self.player, self.npc_list):
             self.game_over()
 
-        # self.player.on_ground = False
-
         logs_hit = arcade.check_for_collision_with_list(
             self.player, self.log_list
         )
         self.player.on_ground = False
         for log in logs_hit:
-            # если игрок сверху бревна
-            # if self.player.bottom >= log.top - 10:
-            # self.player.center_y = log.top + self.player.height / 2
-            # self.player.change_y = 0
-            # self.player.on_ground = True
-
-            # игрок едет вместе с бревном
-
             self.player.center_x += log.speed * delta_time
             self.player.on_ground = True
-            # print("True")
-
-        # if self.player.is_jumping and not logs_hit:
-        #     if self.player.center_y < 1200:
-        #         self.player.is_jumping = False
 
         if arcade.check_for_collision_with_list(self.player, self.rivers_list) and not self.player.on_ground:
             self.load_level(first=False)
             self.player.center_x = self.width // 2
             self.player.center_y = self.height // 5
-            # print("FALL")
 
         if self.fade_state == 1:  # затемнение
             self.fade_alpha += self.fade_speed * delta_time
@@ -496,7 +484,7 @@ class Game(arcade.Window):
             self.player.change_x = self.player.speed
             self.player.facing_right = True
             self.player.walking = True
-        elif key == arcade.key.SPACE:
+        elif key == arcade.key.SPACE and self.jumping_ability:
             self.player.is_jumping = True
             self.player.center_y += 48
 
@@ -509,7 +497,7 @@ class Game(arcade.Window):
 
 
 def main():
-    game = Game()
+    game = Game(700)
     game.setup()
     arcade.run()
 
