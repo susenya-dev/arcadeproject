@@ -161,23 +161,40 @@ class Player(AnimatedSprite):
     _idle_right = None
     _idle_left = None
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, pers):
         super().__init__(speed=1)
 
         if not Player._textures_loaded:
-            Player._textures_right, Player._textures_left = load_textures(
-                "assets/duck/duck", 7
-            )
-            Player._idle_right = arcade.load_texture("assets/duck/duck0.png")
-            Player._idle_left = Player._idle_right.flip_left_right()
-            Player._textures_loaded = True
-
+            if pers == "s1":
+                Player._textures_right, Player._textures_left = load_textures(
+                    "assets/duck/duck", 7
+                )
+                Player._idle_right = arcade.load_texture("assets/duck/duck0.png")
+                Player._idle_left = Player._idle_right.flip_left_right()
+                Player._textures_loaded = True
+                self.scale = 1
+            elif pers == "s2":
+                Player._textures_right, Player._textures_left = load_textures(
+                    "assets/pupa/", 4
+                )
+                Player._idle_right = arcade.load_texture("assets/pupa/0.png")
+                Player._idle_left = Player._idle_right.flip_left_right()
+                Player._textures_loaded = True
+                self.scale = 2
+            elif pers == "s3":
+                Player._textures_right, Player._textures_left = load_textures(
+                    "assets/pers2/", 4
+                )
+                Player._idle_right = arcade.load_texture("assets/pers2/0.png")
+                Player._idle_left = Player._idle_right.flip_left_right()
+                Player._textures_loaded = True
+                self.scale = 1.8
             # Player._textures_right, Player._textures_left = load_textures(
             #     "assets/pupa/", 4
             # )
             # Player._idle_right = arcade.load_texture("assets/pupa/0.png")
             # self.scale = 2
-        self.scale = 1
+
         self.textures_right = Player._textures_right
         self.textures_left = Player._textures_left
         self.texture = Player._idle_right
@@ -265,7 +282,16 @@ class Game(arcade.Window):
 
         self.load_level(first=True)
 
-        self.player = Player(self.width // 2, self.height // 5)
+        with open("assets/player.txt", "r", encoding="utf-8") as f:
+            user_name = f.readline().strip()
+        conn = sqlite3.connect("assets/game.db")
+        cur = conn.cursor()
+        sp = cur.execute(
+            f"SELECT current_skin FROM leaders WHERE user = '{user_name}'").fetchall()
+        conn.close()
+        print(sp[0])
+
+        self.player = Player(self.width // 2, self.height // 5, sp[0][0])
         self.player_list.append(self.player)
 
         self.physics_engine = arcade.PhysicsEngineSimple(
