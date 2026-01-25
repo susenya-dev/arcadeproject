@@ -63,6 +63,33 @@ class MyGUIWindow(arcade.Window):
 
     def shop_menu(self):
         self.shop_layout.clear()
+        with open("assets/player.txt", "r", encoding="utf-8") as f:
+            user_name = f.readline().strip()
+        conn = sqlite3.connect("assets/game.db")
+        cur = conn.cursor()
+        sp = cur.execute(
+            f"SELECT coins_count, skin FROM leaders WHERE user = '{user_name}'").fetchall()
+        print(sp)
+        conn.close()
+
+        shop_label = UILabel(
+            text=f"Coins: {sp[0][0]}",
+            font_size=20,
+            text_color=arcade.color.GOLD,
+            width=300,
+            align="center"
+        )
+        self.shop_layout.add(shop_label)
+
+        if "s2" in sp[0][-1]:
+            self.text = "Персонаж 2"
+        else:
+            self.text = "🔒Купить за 20💲🔒"
+
+        if "s3" in sp[0][-1]:
+            self.text2 = "Персонаж 3"
+        else:
+            self.text2 = "🔒Купить за 30💲🔒"
 
         initial_texture = arcade.load_texture("assets/shop_foto/1.png")
 
@@ -84,32 +111,32 @@ class MyGUIWindow(arcade.Window):
         )
         self.shop_layout.add(shop_label)
 
-        character1_button = UIFlatButton(
+        self.character1_button = UIFlatButton(
             text="Персонаж 1",
             width=200,
             height=50,
             color=arcade.color.GRAY
         )
-        character1_button.on_click = lambda event: self.shop_button_clicked(1)
-        self.shop_layout.add(character1_button)
+        self.character1_button.on_click = lambda event: self.shop_button_clicked(1)
+        self.shop_layout.add(self.character1_button)
 
-        character2_button = UIFlatButton(
-            text="Персонаж 2",
+        self.character2_button = UIFlatButton(
+            text=self.text,
             width=200,
             height=50,
             color=arcade.color.GRAY
         )
-        character2_button.on_click = lambda event: self.shop_button_clicked(2)
-        self.shop_layout.add(character2_button)
+        self.character2_button.on_click = lambda event: self.skin_shop(2)
+        self.shop_layout.add(self.character2_button)
 
-        character3_button = UIFlatButton(
-            text="Персонаж 3",
+        self.character3_button = UIFlatButton(
+            text=self.text2,
             width=200,
             height=50,
             color=arcade.color.GRAY
         )
-        character3_button.on_click = lambda event: self.shop_button_clicked(3)
-        self.shop_layout.add(character3_button)
+        self.character3_button.on_click = lambda event: self.skin_shop(3)
+        self.shop_layout.add(self.character3_button)
 
         self.texture_widget = UITextureButton(
             texture=initial_texture,
@@ -123,13 +150,118 @@ class MyGUIWindow(arcade.Window):
 
         self.sw_layout(self.shop_layout)
 
+    def mag_send(self, event, param):
+        message_box = UIMessageBox(
+            width=300, height=200,
+            message_text="Вы уверены что хотите купить персонажа?",
+            buttons=("ДА", "НЕТ")
+        )
+        message_box.on_action = self.message_from_shop(event, param)
+        self.manager.add(message_box)
+
+    def message_from_shop(self, event, param):
+        bt = event
+        if bt == "ДА":
+            self.skin_shop(param)
+        else:
+            pass
+
+    def skin_shop(self, param):
+        with open("assets/player.txt", "r", encoding="utf-8") as f:
+            user_name = f.readline().strip()
+        conn = sqlite3.connect("assets/game.db")
+        cur = conn.cursor()
+        sp = cur.execute(
+            f"SELECT coins_count, skin FROM leaders WHERE user = '{user_name}'").fetchall()
+        # print(sp[0][0])
+
+        if f"s{param}" in sp[0][-1]:
+            self.shop_button_clicked(param)
+        else:
+            if param == 2:
+                sp = cur.execute(
+                    f"SELECT coins_count, skin FROM leaders WHERE user = '{user_name}'").fetchall()
+                # print(sp[0][0])
+                if sp[0][0] > 20:
+                    skin_db = f"{sp[0][-1]}s2"
+                    ost_coin = sp[0][0] - 20
+                    # print(skin_db)
+                    # print(ost_coin)
+                    cur.execute(
+                        f""" UPDATE leaders SET coins_count = {ost_coin}, skin = '{skin_db}' 
+                        WHERE user = '{user_name}'""")
+                    self.character2_button.text = "Персонаж 2"
+                    self.texture_widget.trigger_render()
+                    self.shop_button_clicked(param)
+                    print("купленно2")
+                    message_box = UIMessageBox(
+                        width=300, height=200,
+                        message_text="Купленно",
+                        buttons=("OK",)
+                    )
+                    message_box.on_action = self.on_message_button
+                    self.manager.add(message_box)
+                else:
+                    message_box = UIMessageBox(
+                        width=300, height=200,
+                        message_text="Нехватает монет",
+                        buttons=("OK",)
+                    )
+                    message_box.on_action = self.on_message_button
+                    self.manager.add(message_box)
+
+            elif param == 3:
+                sp = cur.execute(
+                    f"SELECT coins_count, skin FROM leaders WHERE user = '{user_name}'").fetchall()
+                if sp[0][0] > 30:
+                    skin_db = f"{sp[0][-1]}s3"
+                    ost_coin = sp[0][0] - 30
+                    cur.execute(
+                        f""" UPDATE leaders SET coins_count = {ost_coin}, skin = '{skin_db}' 
+                        WHERE user = '{user_name}'""")
+                    self.character3_button.text = "Персонаж 2"
+                    self.texture_widget.trigger_render()
+                    self.shop_button_clicked(param)
+                    print("купленно3")
+                    message_box = UIMessageBox(
+                        width=300, height=200,
+                        message_text="Купленно",
+                        buttons=("OK",)
+                    )
+                    message_box.on_action = self.on_message_button
+                    self.manager.add(message_box)
+                else:
+                    message_box = UIMessageBox(
+                        width=300, height=200,
+                        message_text="Нехватает монет",
+                        buttons=("OK",)
+                    )
+                    message_box.on_action = self.on_message_button
+                    self.manager.add(message_box)
+
+        conn.commit()
+        conn.close()
+
     def shop_button_clicked(self, param):
         new_texture = arcade.load_texture(f"assets/shop_foto/{param}.png")
+        with open("assets/player.txt", "r", encoding="utf-8") as f:
+            user_name = f.readline().strip()
+        conn = sqlite3.connect("assets/game.db")
+        cur = conn.cursor()
+        cur.execute(
+            f"""UPDATE leaders SET current_skin = 's{param}' WHERE user = '{user_name}';""")
+        conn.commit()
+        conn.close()
 
         self.texture_widget.texture = new_texture
         self.texture_widget.texture_hovered = new_texture
         self.texture_widget.texture_pressed = new_texture
         self.texture_widget.trigger_render()
+
+        # self.character3_button.text = "Персонаж 3"
+        # self.texture_widget.trigger_render()
+        # self.character2_button.text = "Персонаж 2"
+        # self.texture_widget.trigger_render()
 
     def start_game(self, event):
         self.current_mode = "game"
@@ -203,11 +335,11 @@ class MyGUIWindow(arcade.Window):
             self.show_main_menu(None)
             self.cursor.execute(f'''INSERT INTO leaders (
                                     user,
-                                    password, coins_count, time_of_game, skin
+                                    password
                                 )
                                 VALUES (
                                 '{us}',
-                                    '{ps}', 0, 0, 0
+                                    '{ps}'
                                 );''')
             print(str(us), file=f)
             print(str(ps), file=f)
@@ -291,7 +423,7 @@ class MyGUIWindow(arcade.Window):
             height=50,
             color=arcade.color.BLUE
         )
-        settings_button2.on_click = self.delete_user
+        settings_button2.on_click = self.delet_user
         self.main_layout.add(settings_button2)
 
     def show_shop(self, event):
@@ -302,7 +434,7 @@ class MyGUIWindow(arcade.Window):
         from ledboard import show_rating_in_window
         show_rating_in_window(self)
 
-    def delete_user(self, event=None):
+    def delet_user(self, event=None):
         open("assets/player.txt", 'w').close()
         self.level_layout.clear()
 
