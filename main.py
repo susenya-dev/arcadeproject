@@ -1,3 +1,6 @@
+import os
+import time
+
 import arcade
 import math
 from functools import lru_cache
@@ -163,37 +166,15 @@ class Player(AnimatedSprite):
 
     def __init__(self, x, y, pers):
         super().__init__(speed=1)
-
+        print(len(os.listdir(f'assets/{pers}')))
         if not Player._textures_loaded:
-            if pers == "s1":
-                Player._textures_right, Player._textures_left = load_textures(
-                    "assets/duck/duck", 7
-                )
-                Player._idle_right = arcade.load_texture("assets/duck/duck0.png")
-                Player._idle_left = Player._idle_right.flip_left_right()
-                Player._textures_loaded = True
-                self.scale = 1
-            elif pers == "s2":
-                Player._textures_right, Player._textures_left = load_textures(
-                    "assets/pupa/", 4
-                )
-                Player._idle_right = arcade.load_texture("assets/pupa/0.png")
-                Player._idle_left = Player._idle_right.flip_left_right()
-                Player._textures_loaded = True
-                self.scale = 2
-            elif pers == "s3":
-                Player._textures_right, Player._textures_left = load_textures(
-                    "assets/pers2/", 4
-                )
-                Player._idle_right = arcade.load_texture("assets/pers2/0.png")
-                Player._idle_left = Player._idle_right.flip_left_right()
-                Player._textures_loaded = True
-                self.scale = 1.8
-            # Player._textures_right, Player._textures_left = load_textures(
-            #     "assets/pupa/", 4
-            # )
-            # Player._idle_right = arcade.load_texture("assets/pupa/0.png")
-            # self.scale = 2
+            Player._textures_right, Player._textures_left = load_textures(
+                f'assets/{pers}/', len(os.listdir(f'assets/{pers}'))
+            )
+            Player._idle_right = arcade.load_texture(f"assets/{pers}/0.png")
+            Player._idle_left = Player._idle_right.flip_left_right()
+            Player._textures_loaded = True
+            self.scale = 1
 
         self.textures_right = Player._textures_right
         self.textures_left = Player._textures_left
@@ -289,7 +270,6 @@ class Game(arcade.Window):
         sp = cur.execute(
             f"SELECT current_skin FROM leaders WHERE user = '{user_name}'").fetchall()
         conn.close()
-        print(sp[0])
 
         self.player = Player(self.width // 2, self.height // 5, sp[0][0])
         self.player_list.append(self.player)
@@ -525,6 +505,8 @@ class Game(arcade.Window):
         elif key == arcade.key.SPACE:
             self.player.is_jumping = True
             self.player.center_y += 48
+        elif key == arcade.key.ESCAPE:
+            self.pause_menu()
 
     def on_key_release(self, key, modifiers):
         if key in (arcade.key.W, arcade.key.S):
@@ -532,6 +514,13 @@ class Game(arcade.Window):
         elif key in (arcade.key.A, arcade.key.D):
             self.player.change_x = 0
         self.player.walking = False
+
+    def pause_menu(self):
+        self.close()
+        from main_menu import MyGUIWindow as main_menu_start
+        time.sleep(0.3)
+        window = main_menu_start()
+        window.run()
 
 
 def main():
