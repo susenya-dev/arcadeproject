@@ -70,6 +70,10 @@ class MyGUIWindow(arcade.Window):
         sp = cur.execute(
             f"SELECT coins_count, skin FROM leaders WHERE user = '{user_name}'").fetchall()
         print(sp)
+        sp2 = cur.execute(
+            f"SELECT current_skin FROM leaders WHERE user = '{user_name}'").fetchall()
+
+
         conn.close()
 
         shop_label = UILabel(
@@ -147,6 +151,7 @@ class MyGUIWindow(arcade.Window):
             height=100
         )
         self.shop_layout.add(self.texture_widget)
+        self.shop_button_clicked(int(sp2[-1][-1][-1]))
 
         self.sw_layout(self.shop_layout)
 
