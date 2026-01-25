@@ -13,14 +13,7 @@ def show_rating_in_window(main_window):
 
 
 def load_rating_data(layout, main_window):
-    back_button = UIFlatButton(
-        text="Назад в меню",
-        width=200,
-        height=50,
-        color=arcade.color.RED
-    )
-    back_button.on_click = main_window.show_main_menu
-    layout.add(back_button)
+    f = open("assets/player.txt").readlines()
 
     title = UILabel(
         text="Рейтинг",
@@ -31,9 +24,18 @@ def load_rating_data(layout, main_window):
     )
     layout.add(title)
 
+    title = UILabel(
+        text=f'Вы "{f[0]}"',
+        font_size=20,
+        text_color=arcade.color.GOLD,
+        width=700,
+        align="center"
+    )
+    layout.add(title)
+
     conn = sqlite3.connect("assets/game.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT ID, user, coins_count, time_of_game FROM leaders")
+    cursor.execute("SELECT ID, user, coins_count, time_of_game FROM leaders ORDER BY coins_count DESC")
     rows = cursor.fetchall()
     conn.close()
 
@@ -68,3 +70,12 @@ def load_rating_data(layout, main_window):
             align="center"
         )
         layout.add(no_data)
+
+    back_button = UIFlatButton(
+        text="Назад в меню",
+        width=200,
+        height=50,
+        color=arcade.color.RED
+    )
+    back_button.on_click = main_window.show_main_menu
+    layout.add(back_button)
