@@ -4,6 +4,7 @@ import sys
 import time
 import arcade
 import math
+
 from functools import lru_cache
 import datetime
 from pyglet.graphics import Batch
@@ -534,6 +535,7 @@ class Game(arcade.Window):
             cam_y = self.player.center_y
 
         if self.player.center_y + 550 < cam_y:
+            self.play_sound(3)
             self.game_over()
 
         self.camera.position = arcade.math.lerp_2d(
@@ -555,6 +557,7 @@ class Game(arcade.Window):
             self.fade_state = 1
 
         if arcade.check_for_collision_with_list(self.player, self.npc_list):
+            self.play_sound(1)
             self.game_over()
 
         logs_hit = arcade.check_for_collision_with_list(
@@ -566,6 +569,7 @@ class Game(arcade.Window):
             self.player.on_ground = True
 
         if arcade.check_for_collision_with_list(self.player, self.rivers_list) and not self.player.on_ground:
+            self.play_sound(2)
             self.load_level(first=False)
             self.player.center_x = self.width // 2
             self.player.center_y = self.height // 5
@@ -588,6 +592,9 @@ class Game(arcade.Window):
         self.text = arcade.Text(f'''Score: {self.score}   {time_str}''',
                                 10, self.height - 30, arcade.color.WHITE,
                                 24, batch=self.batch)
+
+    def play_sound(self, param):
+        arcade.play_sound(arcade.Sound(f"assets/{param}.wav"))
 
     def on_key_press(self, key, modifiers):
         if self.pause_menu.active:
