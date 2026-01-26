@@ -9,7 +9,9 @@ from functools import lru_cache
 import datetime
 from pyglet.graphics import Batch
 import sqlite3
-from random import randint, shuffle, choice
+from random import randint, shuffle, choice, uniform
+from arcade.particles import FadeParticle, Emitter, EmitBurst, EmitInterval, EmitMaintainCount
+from pyglet.graphics import Batch
 
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
@@ -25,6 +27,32 @@ CARS = ["assets/car/green_car/Green_COUPE_CLEAN_EAST_00",
         ]
 NPC_TEXTURE_CACHE = {}
 scale_list = {"s1": 1.2, "s2": 2, "s3": 1.3}
+SPARK_TEX = [
+    arcade.make_soft_circle_texture(8, arcade.color.PASTEL_YELLOW),
+    arcade.make_soft_circle_texture(8, arcade.color.PEACH),
+    arcade.make_soft_circle_texture(8, arcade.color.BABY_BLUE),
+    arcade.make_soft_circle_texture(8, arcade.color.ELECTRIC_CRIMSON),
+]
+SMOKE_TEX = arcade.make_soft_circle_texture(20, arcade.color.LIGHT_GRAY, 255, 80)
+PUFF_TEX = arcade.make_soft_circle_texture(12, arcade.color.WHITE, 255, 50)
+
+
+def make_trail(attached_sprite, maintain=60):
+    # «След за объектом»: поддерживаем постоянное число частиц
+    emit = Emitter(
+        center_xy=(attached_sprite.center_x, attached_sprite.center_y),
+        emit_controller=EmitMaintainCount(maintain),
+        particle_factory=lambda e: FadeParticle(
+            filename_or_texture=choice(SPARK_TEX),
+            change_xy=arcade.math.rand_in_circle((0.0, 0.0), 1.6),
+            lifetime=uniform(0.35, 0.6),
+            start_alpha=220, end_alpha=0,
+            scale=uniform(0.25, 0.4),
+        ),
+    )
+    # Хитрость: каждое обновление будем прижимать центр к спрайту (см. ниже)
+    emit._attached = attached_sprite
+    return emit
 
 
 def connect_to_db():
@@ -372,6 +400,8 @@ class Game(arcade.Window):
             falloff_time=0.1,
             shake_frequency=30,
         )
+        self.emitters = []
+        self.trail = None
 
         self.pause_menu = PauseMenu(self)
         self.exiting_to_menu = False  # Флаг для выхода в меню
@@ -492,10 +522,11 @@ class Game(arcade.Window):
 
         self.player_list.draw()
         self.npc_list.draw()
-
+        for e in self.emitters:
+            e.draw()
         self.wd_cam.use()
         self.batch.draw()
-
+       
         # Отрисовка меню паузы поверх всего
         self.pause_menu.draw()
 
@@ -516,6 +547,12 @@ class Game(arcade.Window):
             return
 
         self.player_list.update()
+
+        for e in self.emitters:
+            e.update(delta_time)
+        if self.trail:
+            self.trail.center_x = self.player.center_x
+            self.trail.center_y = self.player.center_y
 
         self.npc_list.update()
         self.log_list.update(delta_time)
@@ -600,6 +637,14 @@ class Game(arcade.Window):
         if self.pause_menu.active:
             self.pause_menu.on_key_press(key)
             return
+
+        if key == arcade.key.T:
+            if self.trail:
+                self.emitters.remove(self.trail)
+                self.trail = None
+            else:
+                self.trail = make_trail(self.player)
+                self.emitters.append(self.trail)
 
         if key == arcade.key.W:
             self.player.change_y = self.player.speed
