@@ -5,11 +5,8 @@ from arcade.gui import UIManager, UIFlatButton, UILabel, UIBoxLayout, UIAnchorLa
     UITextureButton
 import string as st
 import random
-import sys
-import subprocess
+from main import Game
 from arcade.gui import UITextWidget
-from ledboard import show_rating_in_window
-from main import main
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -20,10 +17,14 @@ alp = alp.replace('0', '').replace('o', '').replace('O', '').replace('l',
                                                                                  '').replace('I', '')
 
 
-def generate_password(n, m):
+def generate_password(m):
+    return ''.join(random.choices(alp, k=m))
+
+
+def main(n, m):
     ans = []
     while len(ans) < n:
-        a = ''.join(random.choices(alp, k=m))
+        a = generate_password(m)
         if a not in ans:
             ans.append(a)
     return ans
@@ -72,6 +73,7 @@ class MyGUIWindow(arcade.Window):
         sp2 = cur.execute(
             f"SELECT current_skin FROM leaders WHERE user = '{user_name}'").fetchall()
 
+
         conn.close()
 
         shop_label = UILabel(
@@ -92,6 +94,8 @@ class MyGUIWindow(arcade.Window):
             self.text2 = "Персонаж 3"
         else:
             self.text2 = "🔒Купить за 30💲🔒"
+
+        initial_texture = arcade.load_texture("assets/shop_foto/1.png")
 
         back_button = UIFlatButton(
             text="Назад в меню",
@@ -138,8 +142,6 @@ class MyGUIWindow(arcade.Window):
         self.character3_button.on_click = lambda event: self.skin_shop(3)
         self.shop_layout.add(self.character3_button)
 
-        initial_texture = arcade.load_texture(f"assets/shop_foto/{sp2[0][0][-1]}.png")
-
         self.texture_widget = UITextureButton(
             texture=initial_texture,
             texture_hovered=initial_texture,
@@ -149,30 +151,50 @@ class MyGUIWindow(arcade.Window):
             height=100
         )
         self.shop_layout.add(self.texture_widget)
+        self.shop_button_clicked(int(sp2[-1][-1][-1]))
 
         self.sw_layout(self.shop_layout)
+
+    def mag_send(self, event, param):
+        message_box = UIMessageBox(
+            width=300, height=200,
+            message_text="Вы уверены что хотите купить персонажа?",
+            buttons=("ДА", "НЕТ")
+        )
+        message_box.on_action = self.message_from_shop(event, param)
+        self.manager.add(message_box)
+
+    def message_from_shop(self, event, param):
+        bt = event
+        if bt == "ДА":
+            self.skin_shop(param)
+        else:
+            pass
 
     def skin_shop(self, param):
         with open("assets/player.txt", "r", encoding="utf-8") as f:
             user_name = f.readline().strip()
         conn = sqlite3.connect("assets/game.db")
         cur = conn.cursor()
-        sp1 = cur.execute(
+        sp = cur.execute(
             f"SELECT coins_count, skin FROM leaders WHERE user = '{user_name}'").fetchall()
+        # print(sp[0][0])
 
-        if f"s{param}" in sp1[0][-1]:
+        if f"s{param}" in sp[0][-1]:
             self.shop_button_clicked(param)
         else:
             if param == 2:
                 sp = cur.execute(
                     f"SELECT coins_count, skin FROM leaders WHERE user = '{user_name}'").fetchall()
+                # print(sp[0][0])
                 if sp[0][0] > 20:
                     skin_db = f"{sp[0][-1]}s2"
                     ost_coin = sp[0][0] - 20
+                    # print(skin_db)
+                    # print(ost_coin)
                     cur.execute(
                         f""" UPDATE leaders SET coins_count = {ost_coin}, skin = '{skin_db}' 
                         WHERE user = '{user_name}'""")
-                    conn.commit()
                     self.character2_button.text = "Персонаж 2"
                     self.texture_widget.trigger_render()
                     self.shop_button_clicked(param)
@@ -202,8 +224,7 @@ class MyGUIWindow(arcade.Window):
                     cur.execute(
                         f""" UPDATE leaders SET coins_count = {ost_coin}, skin = '{skin_db}' 
                         WHERE user = '{user_name}'""")
-                    conn.commit()
-                    self.character3_button.text = "Персонаж 3"
+                    self.character3_button.text = "Персонаж 2"
                     self.texture_widget.trigger_render()
                     self.shop_button_clicked(param)
                     print("купленно3")
@@ -242,16 +263,18 @@ class MyGUIWindow(arcade.Window):
         self.texture_widget.texture_pressed = new_texture
         self.texture_widget.trigger_render()
 
+        # self.character3_button.text = "Персонаж 3"
+        # self.texture_widget.trigger_render()
+        # self.character2_button.text = "Персонаж 2"
+        # self.texture_widget.trigger_render()
+
     def start_game(self, event):
-        try:
-            self.close()
-            self.launch_game()
+        self.current_mode = "game"
 
-        except Exception:
-            print("ошибка старта 257 строка")
-
-    def launch_game(self):
-        main()
+        self.game_instance = Game()
+        self.game_instance.setup()
+        self.manager.disable()
+        self.manager.clear()
 
     def user_menu(self):
         self.user_layout.clear()
@@ -276,10 +299,12 @@ class MyGUIWindow(arcade.Window):
 
     def menlog(self, input_text1, input_text2):
         self.login_user(input_text1, input_text2)
+        # self.show_main_menu(None)
 
+    # пароль ник
     def login_user(self, input_text1, input_text2):
-        conn = sqlite3.connect("assets/game.db")
-        conn.cursor()
+        self.conn = sqlite3.connect("assets/game.db")
+        self.cursor = self.conn.cursor()
 
         # генерация паролей
         us = ps = ""
@@ -293,27 +318,27 @@ class MyGUIWindow(arcade.Window):
 
         elif (input_text1.text == "" and input_text2.text == "" or (input_text1.text == "Введи имя"
                                                                     and input_text2.text == "Введи пароль")):
-            us = f"user_{''.join(generate_password(3, 1))}"
-            ps = "".join(generate_password(10, 1))
+            us = f"user_{''.join(main(3, 1))}"
+            ps = "".join(main(10, 1))
 
         elif (input_text1.text == "Введи имя" or input_text1.text == "") and (
                 input_text2.text != "" or input_text2.text != "Введи пароль"):
-            us = f"user_{''.join(generate_password(3, 1))}"
+            us = f"user_{''.join(main(3, 1))}"
             ps = input_text2.text
 
         elif (input_text1.text != "Введи имя" or input_text1.text != "") and (
                 input_text2.text == "" or input_text2.text == "Введи пароль"):
             us = input_text1.text
-            ps = "".join(generate_password(10, 1))
+            ps = "".join(main(10, 1))
 
-        sp = conn.execute(f'''SELECT user,
+        sp = self.cursor.execute(f'''SELECT user,
                 password
                 FROM leaders WHERE user like "{us}"''').fetchall()
 
         # проверка на наличие аккаунта
         if len(sp) == 0:
             self.show_main_menu(None)
-            conn.execute(f'''INSERT INTO leaders (
+            self.cursor.execute(f'''INSERT INTO leaders (
                                     user,
                                     password
                                 )
@@ -336,9 +361,9 @@ class MyGUIWindow(arcade.Window):
             self.show_main_menu(None)
             print(str(us), file=f)
             print(str(ps), file=f)
+        # f.close()
 
-        conn.commit()
-        conn.close()
+        self.conn.commit()
 
     def dann(self, event):
         f = open("assets/player.txt").readlines()
@@ -389,7 +414,6 @@ class MyGUIWindow(arcade.Window):
         )
         settings_button.on_click = self.show_rating
         self.main_layout.add(settings_button)
-
         settings_button3 = UIFlatButton(
             text="Данные аккаунта",
             width=200,
@@ -398,26 +422,29 @@ class MyGUIWindow(arcade.Window):
         )
         settings_button3.on_click = self.dann
         self.main_layout.add(settings_button3)
-
         settings_button2 = UIFlatButton(
             text="Выйти из аккаунта",
             width=200,
             height=50,
             color=arcade.color.BLUE
         )
-        settings_button2.on_click = self.delete_user
+        settings_button2.on_click = self.delet_user
         self.main_layout.add(settings_button2)
 
     def show_shop(self, event):
         self.shop_menu()
 
     def show_rating(self, event):
+
+        from ledboard import show_rating_in_window
         show_rating_in_window(self)
 
-    def delete_user(self, event=None):
+    def delet_user(self, event=None):
         open("assets/player.txt", 'w').close()
         self.level_layout.clear()
+
         self.user_menu()
+
         self.sw_layout(self.user_layout)
 
     def setup_level_menu(self):
@@ -465,8 +492,14 @@ class MyGUIWindow(arcade.Window):
             height=50,
             color=arcade.color.RED
         )
-        level3_button.on_click = self.start_game
+        level3_button.on_click = lambda event: self.zapusk_igri(event)
         self.level_layout.add(level3_button)
+
+    def zapusk_igri(self, event):
+        self.close()
+        time.sleep(0.3)
+        from main import main as m
+        m()
 
     def show_levels(self, event):
         self.setup_level_menu()
@@ -478,13 +511,20 @@ class MyGUIWindow(arcade.Window):
 
     def sw_layout(self, new_layout):
         self.anchor_layout.remove(self.current_layout)
+
         self.current_layout = new_layout
         self.anchor_layout.add(self.current_layout)
+
+    def sw_layout2(self, new_layout):
+        self.anchor_layout2.remove(self.current_layout)
+
+        self.current_layout = new_layout
+        self.anchor_layout2.add(self.current_layout)
 
     def start_level(self):
         message_box = UIMessageBox(
             width=300, height=200,
-            message_text=f"Уровень в разработке!",
+            message_text=f"!",
             buttons=("OK",)
         )
         message_box.on_action = self.on_message_button
@@ -510,14 +550,15 @@ class MyGUIWindow(arcade.Window):
             10,
             10,
             arcade.color.WHITE,
-            10,
+            10,  # Размер шрифта
             font_name="Arial",
             anchor_x="left",
             anchor_y="bottom"
         )
+        # Рисуй GUI поверх всего
 
     def on_mouse_press(self, x, y, button, modifiers):
-        pass
+        pass  # Для кликов, но manager сам обрабатывает
 
 
 # Запуск

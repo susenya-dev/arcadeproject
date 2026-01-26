@@ -1,5 +1,7 @@
 import os
 import time
+from os import times
+
 import arcade
 import math
 from functools import lru_cache
@@ -51,17 +53,7 @@ def update_time(current_time):
         f"UPDATE leaders SET time_of_game = {current_time} WHERE id = (SELECT id FROM leaders WHERE user = '{user_name}') AND {current_time} > time_of_game")
     conn.commit()
     conn.close()
-
-
-def get_player_texture():
-    with open("assets/player.txt", "r", encoding="utf-8") as f:
-        user_name = f.readline().strip()
-    conn = connect_to_db()
-    cur = conn.cursor()
-    player_textures = cur.execute(
-        f"SELECT current_skin FROM leaders WHERE user = '{user_name}'").fetchall()
-    conn.close()
-    return player_textures
+    print(user_name)
 
 
 @lru_cache(maxsize=8)
@@ -260,14 +252,15 @@ class PauseMenu:
         ]
 
     def draw(self):
-        if not self.active:
-            return
 
         time_str = self.game.game_time
         minutes = int(time_str // 60)
         seconds = int(time_str % 60)
         game_time_str = f"{minutes:02d}:{seconds:02d}"
         coins_count = self.game.score
+
+        if not self.active:
+            return
 
         arcade.draw_lbwh_rectangle_filled(
             0, 0, SCREEN_WIDTH, SCREEN_HEIGHT,
@@ -286,7 +279,7 @@ class PauseMenu:
         )
 
         arcade.draw_text(
-            f"Собрано монет: {coins_count}   Время в игре: {game_time_str}",
+            f"собранно монет: {coins_count}   время в игре: {game_time_str}",
             SCREEN_WIDTH // 2,
             660,
             arcade.color.WHITE,
@@ -344,6 +337,28 @@ class PauseMenu:
                 break
 
 
+class ShowResult:
+    def __init__(self, time, coins_count):
+        self.time = time
+        self.coins_count = coins_count
+
+    def draw(self):
+        arcade.draw_lbwh_rectangle_filled(
+            0, 0, SCREEN_WIDTH, SCREEN_HEIGHT,
+            arcade.color.SMOKE
+        )
+        arcade.draw_text(
+            "Итоги игры",
+            SCREEN_WIDTH // 2,
+            700,
+            arcade.color.WHITE,
+            72,
+            anchor_x="center",
+            anchor_y="center",
+            bold=True
+        )
+
+
 class Game(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
@@ -371,8 +386,6 @@ class Game(arcade.Window):
         )
 
         self.pause_menu = PauseMenu(self)
-        self.exiting_to_menu = False  # Флаг для выхода в меню
-        self.jumping_ability = False
 
     def setup(self):
         self.player_list = arcade.SpriteList(use_spatial_hash=True)
@@ -382,9 +395,15 @@ class Game(arcade.Window):
 
         self.load_level(first=True)
 
-        self.player_textures = get_player_texture()
+        with open("assets/player.txt", "r", encoding="utf-8") as f:
+            user_name = f.readline().strip()
+        conn = sqlite3.connect("assets/game.db")
+        cur = conn.cursor()
+        sp = cur.execute(
+            f"SELECT current_skin FROM leaders WHERE user = '{user_name}'").fetchall()
+        conn.close()
 
-        self.player = Player(self.width // 2, self.height // 5, self.player_textures[0][0])
+        self.player = Player(self.width // 2, self.height // 5, sp[0][0])
         self.player_list.append(self.player)
 
         self.physics_engine = arcade.PhysicsEngineSimple(
@@ -410,49 +429,28 @@ class Game(arcade.Window):
         self.collisions_list = tile_map.sprite_lists["collisions"]
 
         self.npc_list.clear()
+        self.npc_list.extend([
+            NPC((2000, 264), (-100, 264), 1000, False, CARS[0]),
+            NPC((2000, 480), (-100, 480), 1000, False, CARS[0]),
+            NPC((-100, 544), (2000, 544), 1000, True, CARS[0])
+        ])
+
+        self.npc_list.extend(generate_cars(690, 912))
+        self.npc_list.extend(generate_cars(1024, 1150))
+        self.npc_list.extend(generate_cars(1490, 1730))
         self.log_list.clear()
+
+        self.log_list.extend(generate_logs(390, 420, 1200, 1352))
+        self.log_list.extend(generate_logs(200, 250, 1200, 1352))
+        self.log_list.extend(generate_logs(550, 700, 1200, 1352))
+
+        self.log_list.extend(generate_logs(390, 420, 1848, 2140))
+        self.log_list.extend(generate_logs(0, 100, 1848, 2140))
+        self.log_list.extend(generate_logs(-260, -250, 1848, 2140))
+        self.log_list.extend(generate_logs(-460, -450, 1848, 2140))
+        self.log_list.extend(generate_logs(800, 900, 1848, 2140))
+
         self.coin_list.clear()
-
-        if self.level_manager.current_level == 0:
-            self.npc_list.extend([
-                NPC((2000, 264), (-100, 264), 1000, False, CARS[0]),
-                NPC((2000, 480), (-100, 480), 1000, False, CARS[0]),
-                NPC((-100, 544), (2000, 544), 1000, True, CARS[0])
-            ])
-
-            self.npc_list.extend(generate_cars(690, 912))
-            self.npc_list.extend(generate_cars(1024, 1150))
-            self.npc_list.extend(generate_cars(1490, 1730))
-
-            self.log_list.extend(generate_logs(390, 420, 1200, 1352))
-            self.log_list.extend(generate_logs(200, 250, 1200, 1352))
-            self.log_list.extend(generate_logs(550, 700, 1200, 1352))
-
-            self.log_list.extend(generate_logs(390, 420, 1848, 2140))
-            self.log_list.extend(generate_logs(0, 10, 1848, 2140))
-            self.log_list.extend(generate_logs(-260, -250, 1848, 2140))
-            self.log_list.extend(generate_logs(-460, -450, 1848, 2140))
-            self.log_list.extend(generate_logs(800, 820, 1848, 2140))
-
-        elif self.level_manager.current_level == 1:
-            self.npc_list.extend(generate_cars(280, 510))
-            self.npc_list.extend(generate_cars(688, 930))
-            self.npc_list.extend(generate_cars(1480, 1590))
-            self.npc_list.extend(generate_cars(2000, 2112))
-
-            self.log_list.extend(generate_logs(390, 420, 1060, 1120))
-            self.log_list.extend(generate_logs(200, 220, 1060, 1120))
-
-            self.log_list.extend(generate_logs(390, 420, 1320, 1376))
-            self.log_list.extend(generate_logs(200, 220, 1320, 1376))
-
-            self.log_list.extend(generate_logs(-120, -110, 1670, 1824))
-            self.log_list.extend(generate_logs(0, 20, 1670, 1824))
-            self.log_list.extend(generate_logs(100, 120, 1670, 1824))
-            self.log_list.extend(generate_logs(200, 220, 1670, 1824))
-            self.log_list.extend(generate_logs(390, 420, 1670, 1824))
-            self.log_list.extend(generate_logs(590, 620, 1670, 1824))
-
         for _ in range(100):
             point1 = arcade.math.rand_in_circle((1920 // 2, 2560 // 2), 2560)
             coin = Coin(point1[0], point1[1])
@@ -481,9 +479,9 @@ class Game(arcade.Window):
         self.camera.use()
 
         self.grass_list.draw()
-        self.coastline_list.draw()
         self.coin_list.draw()
         self.rivers_list.draw()
+        self.coastline_list.draw()
         self.log_list.draw()
         self.collisions_list.draw()
 
@@ -493,7 +491,6 @@ class Game(arcade.Window):
         self.wd_cam.use()
         self.batch.draw()
 
-        # Отрисовка меню паузы поверх всего
         self.pause_menu.draw()
 
         if self.fade_alpha > 0:
@@ -506,9 +503,6 @@ class Game(arcade.Window):
             )
 
     def on_update(self, delta_time):
-        if self.exiting_to_menu:
-            return
-
         if self.pause_menu.active:
             return
 
@@ -538,14 +532,9 @@ class Game(arcade.Window):
             self.camera.position, (cam_x, cam_y), 0.12
         )
 
-        if arcade.check_for_collision_with_list(self.player, self.coastline_list) and self.jumping_ability == False:
-            self.jumping_ability = True
-        if arcade.check_for_collision_with_list(self.player, self.grass_list) and self.jumping_ability == True:
-            self.jumping_ability = False
-
-        coins_hit = arcade.check_for_collision_with_list(self.player, self.coin_list)
-        for coin in coins_hit:
-            coin.remove_from_sprite_lists()
+        chk = arcade.check_for_collision_with_list(self.player, self.coin_list)
+        for i in chk:
+            i.remove_from_sprite_lists()
             self.score += 1
             update_balance()
 
@@ -606,7 +595,7 @@ class Game(arcade.Window):
             self.player.change_x = self.player.speed
             self.player.facing_right = True
             self.player.walking = True
-        elif key == arcade.key.SPACE and self.jumping_ability:
+        elif key == arcade.key.SPACE:
             self.player.is_jumping = True
             self.player.center_y += 48
         elif key == arcade.key.ESCAPE:
@@ -633,12 +622,12 @@ class Game(arcade.Window):
     def return_to_main_menu(self):
         try:
             self.close()
-            import subprocess
-            import sys
-            subprocess.run([sys.executable, "main_menu.py"])
-
+            time.sleep(0.3)
+            from main_menu import MyGUIWindow as main_menu_start
+            window = main_menu_start()
+            window.run()
         except Exception as e:
-            print(f"Ошибка при переходе в меню: {e}")
+            print(e)
 
 
 def main():
