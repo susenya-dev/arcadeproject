@@ -392,7 +392,6 @@ class Game(arcade.Window):
         self.npc_list = arcade.SpriteList(use_spatial_hash=True)
         self.log_list = arcade.SpriteList(use_spatial_hash=True)
         self.coin_list = arcade.SpriteList(use_spatial_hash=True)
-
         self.load_level(first=True)
 
         with open("assets/player.txt", "r", encoding="utf-8") as f:
