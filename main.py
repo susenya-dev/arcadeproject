@@ -1,5 +1,6 @@
 import os
 import time
+from os import times
 
 import arcade
 import math
@@ -22,16 +23,15 @@ CARS = ["assets/car/green_car/Green_COUPE_CLEAN_EAST_00",
         "assets/car/black_car/Black_SUPERCAR_CLEAN_EAST_00"
         ]
 NPC_TEXTURE_CACHE = {}
+scale_list = {"s1": 1.2, "s2": 2, "s3": 1.3}
 
 
 def connect_to_db():
-    """Подключается к БД"""
     conn = sqlite3.connect("assets/game.db")
     return conn
 
 
 def update_balance():
-    """Обновляет баланс текущего игрока"""
     with open("assets/player.txt", "r", encoding="utf-8") as f:
         user_name = f.readline().strip()
 
@@ -44,7 +44,6 @@ def update_balance():
 
 
 def update_time(current_time):
-    """Обновляет баланс текущего игрока"""
     with open("assets/player.txt", "r", encoding="utf-8") as f:
         user_name = f.readline().strip()
 
@@ -174,7 +173,7 @@ class Player(AnimatedSprite):
             Player._idle_right = arcade.load_texture(f"assets/{pers}/0.png")
             Player._idle_left = Player._idle_right.flip_left_right()
             Player._textures_loaded = True
-            self.scale = 1
+            self.scale = scale_list[f"{pers}"]
 
         self.textures_right = Player._textures_right
         self.textures_left = Player._textures_left
@@ -230,6 +229,136 @@ class LevelManager:
         return self.load_current()
 
 
+class PauseMenu:
+    def __init__(self, game):
+        self.game = game
+        self.active = False
+        self.buttons = []
+        self.selected_button = 0
+
+    def show(self):
+        self.active = True
+        self.selected_button = 0
+        self.create_buttons()
+
+    def hide(self):
+        self.active = False
+        self.buttons = []
+
+    def create_buttons(self):
+        self.buttons = [
+            {"text": "Продолжить", "action": "resume", "y": 540},
+            {"text": "Закончить игру и выйти в меню", "action": "main_menu", "y": 440},
+        ]
+
+    def draw(self):
+
+        time_str = self.game.game_time
+        minutes = int(time_str // 60)
+        seconds = int(time_str % 60)
+        game_time_str = f"{minutes:02d}:{seconds:02d}"
+        coins_count = self.game.score
+
+        if not self.active:
+            return
+
+        arcade.draw_lbwh_rectangle_filled(
+            0, 0, SCREEN_WIDTH, SCREEN_HEIGHT,
+            (0, 0, 0, 200)
+        )
+
+        arcade.draw_text(
+            "ПАУЗА",
+            SCREEN_WIDTH // 2,
+            760,
+            arcade.color.WHITE,
+            72,
+            anchor_x="center",
+            anchor_y="center",
+            bold=True
+        )
+
+        arcade.draw_text(
+            f"собранно монет: {coins_count}   время в игре: {game_time_str}",
+            SCREEN_WIDTH // 2,
+            660,
+            arcade.color.WHITE,
+            32,
+            anchor_x="center",
+            anchor_y="center",
+            bold=True
+        )
+
+        for i, button in enumerate(self.buttons):
+            color = arcade.color.GOLD if i == self.selected_button else arcade.color.WHITE
+            arcade.draw_text(
+                button["text"],
+                SCREEN_WIDTH // 2,
+                button["y"],
+                color,
+                48,
+                anchor_x="center",
+                anchor_y="center",
+                bold=(i == self.selected_button)
+            )
+
+    def on_key_press(self, key):
+        if not self.active:
+            return False
+
+        if key == arcade.key.ESCAPE:
+            self.execute_action("resume")
+            return True
+
+        return False
+
+    def execute_action(self, action=None):
+        if not action:
+            action = self.buttons[self.selected_button]["action"]
+
+        if action == "resume":
+            self.hide()
+        elif action == "main_menu":
+            self.hide()
+            self.game.return_to_main_menu()
+
+    def on_mouse_motion(self, x, y):
+        if not self.active:
+            return
+
+        for i, button in enumerate(self.buttons):
+            button_width = 400
+            button_height = 60
+            button_x = SCREEN_WIDTH // 2 - button_width // 2
+            button_y = button["y"] - button_height // 2
+
+            if button_x <= x <= button_x + button_width and button_y <= y <= button_y + button_height:
+                self.selected_button = i
+                break
+
+
+class ShowResult:
+    def __init__(self, time, coins_count):
+        self.time = time
+        self.coins_count = coins_count
+
+    def draw(self):
+        arcade.draw_lbwh_rectangle_filled(
+            0, 0, SCREEN_WIDTH, SCREEN_HEIGHT,
+            arcade.color.SMOKE
+        )
+        arcade.draw_text(
+            "Итоги игры",
+            SCREEN_WIDTH // 2,
+            700,
+            arcade.color.WHITE,
+            72,
+            anchor_x="center",
+            anchor_y="center",
+            bold=True
+        )
+
+
 class Game(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
@@ -246,6 +375,7 @@ class Game(arcade.Window):
 
         self.start_time = None
         self.game_time = 0
+        self.paused = False
 
         self.camera_shake = arcade.camera.grips.ScreenShake2D(
             self.camera.view_data,
@@ -254,6 +384,8 @@ class Game(arcade.Window):
             falloff_time=0.1,
             shake_frequency=30,
         )
+
+        self.pause_menu = PauseMenu(self)
 
     def setup(self):
         self.player_list = arcade.SpriteList(use_spatial_hash=True)
@@ -292,51 +424,21 @@ class Game(arcade.Window):
 
         self.map_height = tile_map.height * tile_map.tile_height
         self.grass_list = tile_map.sprite_lists["grass"]
-        # self.road_list = tile_map.sprite_lists["road"]
         self.rivers_list = tile_map.sprite_lists["river"]
         self.coastline_list = tile_map.sprite_lists["coastline"]
         self.collisions_list = tile_map.sprite_lists["collisions"]
-        # self.decorations_list = tile_map.sprite_lists["decorations"]
-        # self.trees_list = tile_map.sprite_lists["trees"]
 
         self.npc_list.clear()
         self.npc_list.extend([
             NPC((2000, 264), (-100, 264), 1000, False, CARS[0]),
             NPC((2000, 480), (-100, 480), 1000, False, CARS[0]),
             NPC((-100, 544), (2000, 544), 1000, True, CARS[0])
-            # NPC((10, 705), (3000, 705), 800, True),
-            # NPC((2800, 800), (10, 800), 900, False),
         ])
 
         self.npc_list.extend(generate_cars(690, 912))
         self.npc_list.extend(generate_cars(1024, 1150))
         self.npc_list.extend(generate_cars(1490, 1730))
         self.log_list.clear()
-
-        # for _ in range(4):
-        #     speed = randint(48, 52)
-        #     x, y = randint(300, 400), randint(1200, )
-        #     FloatingLog()
-        # self.log_list.extend([
-        #     FloatingLog(400, 1200, 50),
-        #     FloatingLog(400, 1248, 50),
-        #     FloatingLog(400, 1296, 50),
-        #     FloatingLog(420, 1344, 50),
-        #
-        #     FloatingLog(660, 1200, 55),
-        #     FloatingLog(700, 1248, 50),
-        #     FloatingLog(750, 1296, 50),
-        #     FloatingLog(800, 1344, 50),
-        #
-        #     FloatingLog(350, 1848, 50),
-        #     FloatingLog(350, 1896, 50),
-        #     FloatingLog(350, 1944, 50),
-        #     FloatingLog(350, 1992, 50),
-        #     FloatingLog(350, 2040, 50),
-        #     FloatingLog(350, 2088, 50),
-        #     FloatingLog(350, 2136, 50),
-        #
-        # ])
 
         self.log_list.extend(generate_logs(390, 420, 1200, 1352))
         self.log_list.extend(generate_logs(200, 250, 1200, 1352))
@@ -352,7 +454,6 @@ class Game(arcade.Window):
         for _ in range(100):
             point1 = arcade.math.rand_in_circle((1920 // 2, 2560 // 2), 2560)
             coin = Coin(point1[0], point1[1])
-
             self.coin_list.append(coin)
 
         if hasattr(self, "player"):
@@ -379,7 +480,6 @@ class Game(arcade.Window):
 
         self.grass_list.draw()
         self.coin_list.draw()
-        # self.road_list.draw()
         self.rivers_list.draw()
         self.coastline_list.draw()
         self.log_list.draw()
@@ -391,6 +491,8 @@ class Game(arcade.Window):
         self.wd_cam.use()
         self.batch.draw()
 
+        self.pause_menu.draw()
+
         if self.fade_alpha > 0:
             arcade.draw_lbwh_rectangle_filled(
                 0,
@@ -401,6 +503,9 @@ class Game(arcade.Window):
             )
 
     def on_update(self, delta_time):
+        if self.pause_menu.active:
+            return
+
         self.player_list.update()
 
         self.npc_list.update()
@@ -439,34 +544,18 @@ class Game(arcade.Window):
         if arcade.check_for_collision_with_list(self.player, self.npc_list):
             self.game_over()
 
-        # self.player.on_ground = False
-
         logs_hit = arcade.check_for_collision_with_list(
             self.player, self.log_list
         )
         self.player.on_ground = False
         for log in logs_hit:
-            # если игрок сверху бревна
-            # if self.player.bottom >= log.top - 10:
-            # self.player.center_y = log.top + self.player.height / 2
-            # self.player.change_y = 0
-            # self.player.on_ground = True
-
-            # игрок едет вместе с бревном
-
             self.player.center_x += log.speed * delta_time
             self.player.on_ground = True
-            # print("True")
-
-        # if self.player.is_jumping and not logs_hit:
-        #     if self.player.center_y < 1200:
-        #         self.player.is_jumping = False
 
         if arcade.check_for_collision_with_list(self.player, self.rivers_list) and not self.player.on_ground:
             self.load_level(first=False)
             self.player.center_x = self.width // 2
             self.player.center_y = self.height // 5
-            # print("FALL")
 
         if self.fade_state == 1:  # затемнение
             self.fade_alpha += self.fade_speed * delta_time
@@ -488,6 +577,10 @@ class Game(arcade.Window):
                                 24, batch=self.batch)
 
     def on_key_press(self, key, modifiers):
+        if self.pause_menu.active:
+            self.pause_menu.on_key_press(key)
+            return
+
         if key == arcade.key.W:
             self.player.change_y = self.player.speed
             self.player.walking = True
@@ -506,21 +599,35 @@ class Game(arcade.Window):
             self.player.is_jumping = True
             self.player.center_y += 48
         elif key == arcade.key.ESCAPE:
-            self.pause_menu()
+            self.pause_menu.show()
 
     def on_key_release(self, key, modifiers):
+        if self.pause_menu.active:
+            return
+
         if key in (arcade.key.W, arcade.key.S):
             self.player.change_y = 0
         elif key in (arcade.key.A, arcade.key.D):
             self.player.change_x = 0
         self.player.walking = False
 
-    def pause_menu(self):
-        self.close()
-        from main_menu import MyGUIWindow as main_menu_start
-        time.sleep(0.3)
-        window = main_menu_start()
-        window.run()
+    def on_mouse_motion(self, x, y, dx, dy):
+        if self.pause_menu.active:
+            self.pause_menu.on_mouse_motion(x, y)
+
+    def on_mouse_press(self, x, y, button, modifiers):
+        if self.pause_menu.active and button == arcade.MOUSE_BUTTON_LEFT:
+            self.pause_menu.execute_action()
+
+    def return_to_main_menu(self):
+        try:
+            self.close()
+            time.sleep(0.3)
+            from main_menu import MyGUIWindow as main_menu_start
+            window = main_menu_start()
+            window.run()
+        except Exception as e:
+            print(e)
 
 
 def main():
