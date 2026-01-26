@@ -209,7 +209,7 @@ class MyGUIWindow(arcade.Window):
                 else:
                     message_box = UIMessageBox(
                         width=300, height=200,
-                        message_text="Нехватает монет",
+                        message_text="Не хватает монет",
                         buttons=("OK",)
                     )
                     message_box.on_action = self.on_message_button
