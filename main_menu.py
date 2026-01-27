@@ -59,6 +59,7 @@ class MyGUIWindow(arcade.Window):
         self.manager.add(self.anchor_layout)  # Всё в manager
         self.current_mode = "menu"
         self.game_instance = None
+        self.speed = 0
 
     def shop_menu(self):
         self.shop_layout.clear()
@@ -242,16 +243,16 @@ class MyGUIWindow(arcade.Window):
         self.texture_widget.texture_pressed = new_texture
         self.texture_widget.trigger_render()
 
-    def start_game(self, event):
+    def start_game(self, event, speed):
         try:
             self.close()
-            self.launch_game()
+            self.launch_game(speed)
 
         except Exception:
             print("ошибка старта 257 строка")
 
-    def launch_game(self):
-        main()
+    def launch_game(self, speed):
+        main(speed)
 
     def user_menu(self):
         self.user_layout.clear()
@@ -447,16 +448,16 @@ class MyGUIWindow(arcade.Window):
             height=50,
             color=arcade.color.GREEN
         )
-        level1_button.on_click = lambda event: self.start_level()
+        level1_button.on_click = lambda event: self.start_game(event, speed=500)
         self.level_layout.add(level1_button)
-
         level2_button = UIFlatButton(
             text="Уровень 2",
             width=200,
             height=50,
             color=arcade.color.ORANGE
         )
-        level2_button.on_click = lambda event: self.start_level()
+
+        level2_button.on_click = lambda event: self.start_game(event, speed=700)
         self.level_layout.add(level2_button)
 
         level3_button = UIFlatButton(
@@ -465,7 +466,8 @@ class MyGUIWindow(arcade.Window):
             height=50,
             color=arcade.color.RED
         )
-        level3_button.on_click = self.start_game
+
+        level3_button.on_click = lambda event: self.start_game(event, speed=1000)
         self.level_layout.add(level3_button)
 
     def show_levels(self, event):

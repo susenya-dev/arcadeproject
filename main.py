@@ -13,6 +13,7 @@ from random import randint, shuffle, choice
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
 SCREEN_TITLE = "Альфа версия"
+SPEED = 500
 
 CARS = ["assets/car/green_car/Green_COUPE_CLEAN_EAST_00",
         "assets/car/bus/BUS_CLEAN_EAST_00",
@@ -23,7 +24,7 @@ CARS = ["assets/car/green_car/Green_COUPE_CLEAN_EAST_00",
         "assets/car/black_car/Black_SUPERCAR_CLEAN_EAST_00"
         ]
 NPC_TEXTURE_CACHE = {}
-scale_list = {"s1": 1.2, "s2": 2, "s3": 1.3}
+scale_list = {"s1": 1.2, "s3": 2, "s3": 1.3}
 
 
 def connect_to_db():
@@ -347,13 +348,13 @@ class PauseMenu:
 
 
 class Game(arcade.Window):
-    def __init__(self):
+    def __init__(self, speed):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
         arcade.set_background_color(arcade.types.Color.from_hex_string("#70A853"))
         self.level_manager = LevelManager()
         self.camera = arcade.Camera2D()
         self.wd_cam = arcade.Camera2D()
-        self.camera_speed = 500
+        self.camera_speed = speed
 
         self.fade_alpha = 0
         self.fade_state = 0
@@ -455,7 +456,7 @@ class Game(arcade.Window):
             self.log_list.extend(generate_logs(390, 420, 1670, 1824))
             self.log_list.extend(generate_logs(590, 620, 1670, 1824))
 
-        for _ in range(100):
+        for _ in range(50):
             point1 = arcade.math.rand_in_circle((1920 // 2, 2560 // 2), 2560)
             coin = Coin(point1[0], point1[1])
             self.coin_list.append(coin)
@@ -483,8 +484,8 @@ class Game(arcade.Window):
         self.camera.use()
 
         self.grass_list.draw()
-        self.coastline_list.draw()
         self.coin_list.draw()
+        self.coastline_list.draw()
         self.rivers_list.draw()
         self.log_list.draw()
         self.collisions_list.draw()
@@ -641,11 +642,11 @@ class Game(arcade.Window):
             print(f"Ошибка при переходе в меню: {e}")
 
 
-def main():
-    game = Game()
+def main(speed):
+    game = Game(speed)
     game.setup()
     arcade.run()
 
 
 if __name__ == "__main__":
-    main()
+    main(SPEED)
