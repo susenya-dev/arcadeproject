@@ -486,7 +486,7 @@ class Game(arcade.Window):
             self.log_list.extend(generate_logs(390, 420, 1670, 1824))
             self.log_list.extend(generate_logs(590, 620, 1670, 1824))
 
-        for _ in range(100):
+        for _ in range(70):
             point1 = arcade.math.rand_in_circle((1920 // 2, 2560 // 2), 2560)
             coin = Coin(point1[0], point1[1])
             self.coin_list.append(coin)
@@ -514,8 +514,8 @@ class Game(arcade.Window):
         self.camera.use()
 
         self.grass_list.draw()
-        self.coastline_list.draw()
         self.coin_list.draw()
+        self.coastline_list.draw()
         self.rivers_list.draw()
         self.log_list.draw()
         self.collisions_list.draw()
