@@ -201,16 +201,23 @@ class Player(AnimatedSprite):
     _textures_left = None
     _idle_right = None
     _idle_left = None
+    _jump_right = None
+    _jump_left = None
 
     def __init__(self, x, y, pers):
         super().__init__(speed=1)
         print(len(os.listdir(f'assets/{pers}')))
         if not Player._textures_loaded:
             Player._textures_right, Player._textures_left = load_textures(
-                f'assets/{pers}/', len(os.listdir(f'assets/{pers}'))
+                f'assets/{pers}/walk/', len(os.listdir(f'assets/{pers}/walk'))
             )
-            Player._idle_right = arcade.load_texture(f"assets/{pers}/0.png")
+            Player._idle_right = arcade.load_texture(f"assets/{pers}/walk/0.png")
             Player._idle_left = Player._idle_right.flip_left_right()
+
+            jump_path = f"assets/{pers}/jump/"
+            jump_count = len(os.listdir(jump_path))
+            Player._jump_right, Player._jump_left = load_textures(jump_path, jump_count)
+
             Player._textures_loaded = True
             self.scale = scale_list[f"{pers}"]
 
@@ -220,15 +227,40 @@ class Player(AnimatedSprite):
 
         self.jump_speed = 5
         self.on_ground = False
-        self.is_jumping = False
         self.center_x = x
         self.center_y = y
 
+        self.is_jumping = False
+        self.jump_frame = 0
+        self.jump_time = 0
+        self.jump_delay = 0.08
+
     def animate(self, delta_time):
+        if self.is_jumping:
+            self.jump_time += delta_time
+            if self.jump_time >= self.jump_delay:
+                self.jump_time = 0
+                self.jump_frame = min(
+                    self.jump_frame + 1,
+                    len(self._jump_right) - 1
+                )
+
+            self.texture = (
+                self._jump_right[self.jump_frame]
+                if self.facing_right
+                else self._jump_left[self.jump_frame]
+            )
+            return
+
         if self.walking:
             super().animate(delta_time)
-        else:
-            self.texture = Player._idle_right if self.facing_right else Player._idle_left
+            return
+
+        self.texture = (
+            self._idle_right
+            if self.facing_right
+            else self._idle_left
+        )
 
 
 class FloatingLog(arcade.Sprite):
@@ -486,7 +518,7 @@ class Game(arcade.Window):
             self.log_list.extend(generate_logs(390, 420, 1670, 1824))
             self.log_list.extend(generate_logs(590, 620, 1670, 1824))
 
-        for _ in range(100):
+        for _ in range(70):
             point1 = arcade.math.rand_in_circle((1920 // 2, 2560 // 2), 2560)
             coin = Coin(point1[0], point1[1])
             self.coin_list.append(coin)
@@ -583,10 +615,13 @@ class Game(arcade.Window):
             self.jumping_ability = True
         if arcade.check_for_collision_with_list(self.player, self.grass_list) and self.jumping_ability == True:
             self.jumping_ability = False
+            self.player.is_jumping = False
+            self.player.jump_frame = 0
 
         coins_hit = arcade.check_for_collision_with_list(self.player, self.coin_list)
         for coin in coins_hit:
             coin.remove_from_sprite_lists()
+            self.play_sound(5)
             self.score += 1
             update_balance()
 
@@ -607,9 +642,8 @@ class Game(arcade.Window):
 
         if arcade.check_for_collision_with_list(self.player, self.rivers_list) and not self.player.on_ground:
             self.play_sound(2)
-            self.load_level(first=False)
-            self.player.center_x = self.width // 2
-            self.player.center_y = self.height // 5
+            self.game_over()
+
 
         if self.fade_state == 1:  # затемнение
             self.fade_alpha += self.fade_speed * delta_time
@@ -662,7 +696,9 @@ class Game(arcade.Window):
             self.player.walking = True
         elif key == arcade.key.SPACE and self.jumping_ability:
             self.player.is_jumping = True
+            self.player.jump_frame = 0
             self.player.center_y += 48
+            self.play_sound(4)
         elif key == arcade.key.ESCAPE:
             self.pause_menu.show()
 

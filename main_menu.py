@@ -84,12 +84,12 @@ class MyGUIWindow(arcade.Window):
         )
         self.shop_layout.add(shop_label)
 
-        if "s2" in sp[0][-1]:
+        if "s3" in sp[0][-1]:
             self.text = "Персонаж 2"
         else:
             self.text = "🔒Купить за 20💲🔒"
 
-        if "s3" in sp[0][-1]:
+        if "s2" in sp[0][-1]:
             self.text2 = "Персонаж 3"
         else:
             self.text2 = "🔒Купить за 30💲🔒"
@@ -168,7 +168,7 @@ class MyGUIWindow(arcade.Window):
                 sp = cur.execute(
                     f"SELECT coins_count, skin FROM leaders WHERE user = '{user_name}'").fetchall()
                 if sp[0][0] > 20:
-                    skin_db = f"{sp[0][-1]}s2"
+                    skin_db = f"{sp[0][-1]}s3"
                     ost_coin = sp[0][0] - 20
                     cur.execute(
                         f""" UPDATE leaders SET coins_count = {ost_coin}, skin = '{skin_db}' 
@@ -198,7 +198,7 @@ class MyGUIWindow(arcade.Window):
                 sp = cur.execute(
                     f"SELECT coins_count, skin FROM leaders WHERE user = '{user_name}'").fetchall()
                 if sp[0][0] > 30:
-                    skin_db = f"{sp[0][-1]}s3"
+                    skin_db = f"{sp[0][-1]}s2"
                     ost_coin = sp[0][0] - 30
                     cur.execute(
                         f""" UPDATE leaders SET coins_count = {ost_coin}, skin = '{skin_db}' 
