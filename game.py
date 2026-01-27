@@ -723,7 +723,7 @@ class Game(arcade.Window):
     def return_to_main_menu(self):
         try:
             self.close()
-            subprocess.run([sys.executable, "main_menu.py"])
+            subprocess.run([sys.executable, "main.py"])
 
         except Exception as e:
             print(f"Ошибка при переходе в меню: {e}")
