@@ -15,7 +15,7 @@ from pyglet.graphics import Batch
 
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
-SCREEN_TITLE = "Альфа версия"
+SCREEN_TITLE = "Release 1.0"
 SPEED = 500
 
 CARS = ["assets/car/green_car/Green_COUPE_CLEAN_EAST_00",

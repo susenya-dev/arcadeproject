@@ -508,7 +508,7 @@ class MyGUIWindow(arcade.Window):
         self.clear()
         self.manager.draw()
         arcade.draw_text(
-            "CrossyWayAlpha: 0.2",
+            "CrossyWay Release: 1.0",
             10,
             10,
             arcade.color.WHITE,
