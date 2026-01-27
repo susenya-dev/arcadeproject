@@ -546,8 +546,8 @@ class Game(arcade.Window):
         self.camera.use()
 
         self.grass_list.draw()
-        self.coastline_list.draw()
         self.coin_list.draw()
+        self.coastline_list.draw()
         self.rivers_list.draw()
         self.log_list.draw()
         self.collisions_list.draw()
