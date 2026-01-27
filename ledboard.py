@@ -33,7 +33,7 @@ def load_rating_data(layout, main_window):
 
     conn = sqlite3.connect("assets/game.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT ID, user, coins_count, time_of_game FROM leaders")
+    cursor.execute("SELECT ID, user, coins_count, time_of_game FROM leaders ORDER BY coins_count DESC")
     rows = cursor.fetchall()
     conn.close()
 
