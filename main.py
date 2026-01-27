@@ -9,7 +9,7 @@ import sys
 import subprocess
 from arcade.gui import UITextWidget
 from ledboard import show_rating_in_window
-from main import main
+from game import main
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
