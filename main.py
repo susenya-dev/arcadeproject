@@ -168,7 +168,7 @@ class MyGUIWindow(arcade.Window):
                 sp = cur.execute(
                     f"SELECT coins_count, skin FROM leaders WHERE user = '{user_name}'").fetchall()
                 if sp[0][0] > 20:
-                    skin_db = f"{sp[0][-1]}s3"
+                    skin_db = f"{sp[0][-1]}s2"
                     ost_coin = sp[0][0] - 20
                     cur.execute(
                         f""" UPDATE leaders SET coins_count = {ost_coin}, skin = '{skin_db}' 
@@ -198,7 +198,7 @@ class MyGUIWindow(arcade.Window):
                 sp = cur.execute(
                     f"SELECT coins_count, skin FROM leaders WHERE user = '{user_name}'").fetchall()
                 if sp[0][0] > 30:
-                    skin_db = f"{sp[0][-1]}s2"
+                    skin_db = f"{sp[0][-1]}s3"
                     ost_coin = sp[0][0] - 30
                     cur.execute(
                         f""" UPDATE leaders SET coins_count = {ost_coin}, skin = '{skin_db}' 
@@ -508,7 +508,7 @@ class MyGUIWindow(arcade.Window):
         self.clear()
         self.manager.draw()
         arcade.draw_text(
-            "CrossyWay Release: 1.0",
+            "CrossyWayRelease: 1.0",
             10,
             10,
             arcade.color.WHITE,
